@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Estante
 
-## Getting Started
+Um diário de leitura social, no espírito do Letterboxd, só que para livros.
+Marque o que você **quer ler**, o que está **lendo** e o que já **leu**, dê nota de meia em meia estrela,
+escreva reviews curtas e descubra livros pelas listas de outros leitores.
 
-First, run the development server:
+> Projeto de portfólio. Leitores e reviews são fictícios; livros, capas e busca vêm da [Open Library](https://openlibrary.org).
+
+## O que dá para fazer
+
+- **Buscar qualquer livro** em mais de 20 milhões de títulos da Open Library.
+- **Montar sua estante** sem cadastro: status, nota, curtida e review ficam salvos no navegador.
+- **Página de cada livro tingida com a cor da capa**, com média, distribuição das notas e reviews.
+- **Perfis** com os 4 favoritos, meta de leitura do ano e diário mês a mês.
+- **Listas** curadas e página de explorar com filtro por gênero e ordenação.
+
+## Três cores, uma estante
+
+O logo são três camadas que dividem o mesmo canto. Cada uma é um estado de leitura, e essas cores
+são usadas no app inteiro com esse significado:
+
+| | Cor | Estado |
+|---|---|---|
+| 🟦 | Anil `#3A2FD6` | Quero ler |
+| 🟪 | Ameixa `#8E2C80` | Lendo |
+| 🟩 | Musgo `#2E7D4F` | Lido |
+| 🟨 | Âmbar `#F5A524` | Avaliação (o marcador do logo) |
+
+O sistema completo está em [DESIGN.md](DESIGN.md).
+
+## Stack
+
+- [Next.js 15](https://nextjs.org) (App Router, Server Components) + TypeScript
+- [Tailwind CSS v4](https://tailwindcss.com) com tokens próprios
+- [shadcn/ui](https://ui.shadcn.com) sobre Base UI
+- [Motion](https://motion.dev) para as microinterações
+- [Open Library API](https://openlibrary.org/developers/api) para busca, obras e capas
+
+## Rodando localmente
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Para regenerar a base de livros de exemplo (metadados, capas e cor de cada capa):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+node scripts/seed-books.mjs
+```
 
-## Learn More
+## Estrutura
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+  page.tsx               home
+  livro/[id]/            página do livro (base de exemplo ou qualquer obra da Open Library)
+  livros/                explorar, com gênero e ordenação
+  busca/                 busca na Open Library
+  u/[handle]/            perfil do leitor
+  listas/ e listas/[slug]
+  leitores/
+  estante/               a estante de quem está usando
+components/              BookCover, Stars, BookActions, LogDialog, ReviewCard...
+lib/
+  books.ts               tipo Book e base de exemplo
+  openlibrary.ts         cliente da Open Library
+  library.ts             estante pessoal (localStorage)
+  data/                  livros gerados, curadoria e dados sociais fictícios
+scripts/seed-books.mjs   gera lib/data/books.json
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Próximos passos
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Contas e banco (Supabase) para a estante sincronizar entre aparelhos
+- Seguir leitores e feed de amigos
+- Retrospectiva do ano com gráficos
+- Modo escuro
