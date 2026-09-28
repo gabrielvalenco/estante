@@ -1,6 +1,6 @@
 "use client";
 
-import { Library, LogOut, Settings, UserRound } from "lucide-react";
+import { Library, LogOut, Settings, UserRound, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -66,6 +66,9 @@ export function AccountMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/estante")}>
           <Library /> Minha estante
+        </DropdownMenuItem>
+        <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/seguindo")}>
+          <Users /> Seguindo
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/conta")}>
           <Settings /> Configurações

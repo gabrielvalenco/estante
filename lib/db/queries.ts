@@ -3,7 +3,7 @@ import "server-only";
 import { and, desc, eq, exists, ne, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { entries, profiles, type EntryRow, type ProfileRow } from "@/lib/db/schema";
+import { entries, follows, profiles, type EntryRow, type ProfileRow } from "@/lib/db/schema";
 import { fromRow, type ReviewView } from "@/lib/reviews";
 
 /**
@@ -67,7 +67,7 @@ export function bookReviews(bookId: string): Promise<ReviewView[]> {
   });
 }
 
-export type PublicProfile = PublicProfileRow & { entries: EntryRow[] };
+export type PublicProfile = PublicProfileRow & { entries: EntryRow[]; followers: number; following: number };
 
 export function profileByHandle(handle: string): Promise<PublicProfile | null> {
   if (!/^[a-z0-9_]{3,20}$/.test(handle)) return Promise.resolve(null);
@@ -79,7 +79,13 @@ export function profileByHandle(handle: string): Promise<PublicProfile | null> {
       orderBy: desc(entries.updatedAt),
       limit: 500,
     });
-    return { ...profile, entries: shelf };
+    const [counts] = await db!
+      .select({
+        followers: sql<number>`(select count(*)::int from ${follows} where ${follows.followingId} = ${profile.id})`,
+        following: sql<number>`(select count(*)::int from ${follows} where ${follows.followerId} = ${profile.id})`,
+      })
+      .from(sql`(select 1) as one`);
+    return { ...profile, entries: shelf, followers: counts?.followers ?? 0, following: counts?.following ?? 0 };
   });
 }
 

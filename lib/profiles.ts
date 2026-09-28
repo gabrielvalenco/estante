@@ -30,6 +30,9 @@ export type ProfileView = {
   lists: List[];
   readThisYear: number;
   isDemo: boolean;
+  /** Só contas reais têm seguidores; leitores de demonstração não estão no banco. */
+  followers: number | null;
+  following: number | null;
 };
 
 export async function getProfileView(handle: string): Promise<ProfileView | null> {
@@ -55,6 +58,8 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
       // Na demonstração, o total do ano acompanha o calendário: fim de setembro, 3/4 da meta.
       readThisYear: Math.max(diary.length, Math.round(demo.goal * 0.74)),
       isDemo: true,
+      followers: null,
+      following: null,
     };
   }
 
@@ -114,5 +119,7 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
     lists: [],
     readThisYear: read.filter((e) => dateOf(e).startsWith(year)).length,
     isDemo: false,
+    followers: p.followers,
+    following: p.following,
   };
 }

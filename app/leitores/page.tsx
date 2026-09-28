@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BookCover } from "@/components/book-cover";
+import { FollowButton } from "@/components/follow-button";
 import { UserAvatar } from "@/components/user-avatar";
 import { books } from "@/lib/books";
 import { reviewsBy, USERS } from "@/lib/data/social";
@@ -62,6 +63,7 @@ export default async function ReadersPage() {
                     </h3>
                     <p className="text-[0.8125rem] text-ink-3">@{p.handle}</p>
                   </div>
+                  <FollowButton handle={p.handle} size="sm" className="ml-auto" />
                 </div>
                 <div className="mt-4 grid grid-cols-4 gap-2">
                   {p.entries.map((e) => (

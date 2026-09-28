@@ -1,13 +1,13 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { entries, profiles, RESERVED_HANDLES } from "@/lib/db/schema";
-import { toProfile, type Profile, type ShelfEntry } from "@/lib/db/types";
+import { entries, follows, profiles, RESERVED_HANDLES } from "@/lib/db/schema";
+import { toProfile, type FeedItem, type Profile, type ShelfEntry } from "@/lib/db/types";
 
 /**
  * Server actions da estante. Toda escrita:
@@ -79,8 +79,8 @@ const isEmpty = (e: z.output<typeof Entry>) => !e.status && !e.rating && !e.like
 // Conta
 // ------------------------------------------------------------
 
-/** Perfil e estante de quem está logado, ou null. */
-export async function getMyAccount(): Promise<{ profile: Profile; shelf: ShelfEntry[] } | null> {
+/** Perfil, estante e quem a pessoa segue (handles), ou null se não houver sessão. */
+export async function getMyAccount(): Promise<{ profile: Profile; shelf: ShelfEntry[]; following: string[] } | null> {
   const id = await currentProfileId();
   if (!id || !db) return null;
   const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, id) });
@@ -89,7 +89,12 @@ export async function getMyAccount(): Promise<{ profile: Profile; shelf: ShelfEn
     where: eq(entries.userId, id),
     orderBy: (e, { desc }) => desc(e.updatedAt),
   });
-  return { profile: toProfile(profile), shelf: rows.map(toShelfEntry) };
+  const followed = await db
+    .select({ handle: profiles.handle })
+    .from(follows)
+    .innerJoin(profiles, eq(follows.followingId, profiles.id))
+    .where(eq(follows.followerId, id));
+  return { profile: toProfile(profile), shelf: rows.map(toShelfEntry), following: followed.map((f) => f.handle) };
 }
 
 function toShelfEntry(r: typeof entries.$inferSelect): ShelfEntry {
@@ -224,6 +229,66 @@ export async function updateProfileAction(
     if (code === "23514") return { ok: false, error: "handle_unavailable" };
     return { ok: false, error: "unavailable" };
   }
+}
+
+// ------------------------------------------------------------
+// Seguir
+// ------------------------------------------------------------
+
+const Handle = z.string().regex(/^[a-z0-9_]{3,20}$/);
+
+/** Segue (ou deixa de seguir) alguém pelo @. Seguir a si mesmo é recusado aqui e no banco. */
+export async function setFollowAction(
+  handle: string,
+  follow: boolean,
+): Promise<{ ok: true } | { ok: false; error: "unauthenticated" | "not_found" | "self" | "unavailable" }> {
+  const me = await currentProfileId();
+  if (!me || !db) return { ok: false, error: "unauthenticated" };
+  const parsed = Handle.safeParse(handle);
+  if (!parsed.success) return { ok: false, error: "not_found" };
+
+  const target = await db.query.profiles.findFirst({ where: eq(profiles.handle, parsed.data), columns: { id: true } });
+  if (!target) return { ok: false, error: "not_found" };
+  if (target.id === me) return { ok: false, error: "self" };
+
+  try {
+    if (follow) {
+      await db.insert(follows).values({ followerId: me, followingId: target.id }).onConflictDoNothing();
+    } else {
+      await db.delete(follows).where(and(eq(follows.followerId, me), eq(follows.followingId, target.id)));
+    }
+  } catch {
+    return { ok: false, error: "unavailable" };
+  }
+
+  // Contagem de seguidores do perfil seguido e de "seguindo" no perfil de quem seguiu.
+  revalidatePath(`/u/${parsed.data}`);
+  const mine = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { handle: true } });
+  if (mine) revalidatePath(`/u/${mine.handle}`);
+  return { ok: true };
+}
+
+/** Atividade recente de quem a pessoa segue: leituras, notas e reviews, das mais novas para as mais antigas. */
+export async function getFollowingFeed(): Promise<FeedItem[] | null> {
+  const me = await currentProfileId();
+  if (!me || !db) return null;
+  const followed = db.select({ id: follows.followingId }).from(follows).where(eq(follows.followerId, me));
+  const rows = await db
+    .select({
+      entry: entries,
+      handle: profiles.handle,
+      name: profiles.name,
+      tone: profiles.tone,
+    })
+    .from(entries)
+    .innerJoin(profiles, eq(entries.userId, profiles.id))
+    .where(inArray(entries.userId, followed))
+    .orderBy(desc(entries.updatedAt))
+    .limit(60);
+  return rows.map(({ entry, handle, name, tone }) => ({
+    user: { handle, name, tone },
+    ...toShelfEntry(entry),
+  }));
 }
 
 // ------------------------------------------------------------

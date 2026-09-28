@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BookCover } from "@/components/book-cover";
+import { FollowSection } from "@/components/follow-button";
 import { ListCard } from "@/components/list-card";
 import { OwnProfileActions } from "@/components/own-profile-actions";
 import { ReviewCard } from "@/components/review-card";
@@ -58,6 +59,13 @@ export default async function ProfilePage({ params }: Props) {
               <OwnProfileActions handle={profile.handle} />
             </p>
             {profile.bio && <p className="mt-2 max-w-md text-[0.9375rem] leading-relaxed text-ink-2">{profile.bio}</p>}
+            {profile.followers !== null && profile.following !== null ? (
+              <FollowSection handle={profile.handle} followers={profile.followers} following={profile.following} />
+            ) : (
+              <p className="mt-4 inline-flex rounded-full bg-sunken px-3 py-1 text-xs font-medium text-ink-3">
+                Leitor de demonstração
+              </p>
+            )}
           </div>
         </div>
 

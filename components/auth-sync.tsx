@@ -61,7 +61,7 @@ function SessionSync() {
         disconnectAccount();
         return;
       }
-      setAuth({ status: "user", profile: account.profile });
+      setAuth({ status: "user", profile: account.profile, following: account.following });
       await connectAccount(account.shelf);
     });
     return () => {

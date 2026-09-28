@@ -117,6 +117,26 @@ export const passwordLogins = pgTable(
   ],
 );
 
+/** Quem segue quem. Público, como num Letterboxd: dá para ver seguidores de qualquer perfil. */
+export const follows = pgTable(
+  "follows",
+  {
+    followerId: uuid("follower_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    followingId: uuid("following_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.followerId, t.followingId] }),
+    // Para "quem segue esta pessoa" (contagem de seguidores).
+    index("follows_following_idx").on(t.followingId),
+    check("follows_not_self", sql`${t.followerId} <> ${t.followingId}`),
+  ],
+);
+
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;
 export type EntryInsert = typeof entries.$inferInsert;

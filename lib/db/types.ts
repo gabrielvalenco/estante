@@ -18,3 +18,6 @@ export type ShelfEntry = {
   finishedOn: string | null;
   updatedAt: number;
 };
+
+/** Um item do feed de quem você segue: um registro da estante de outra pessoa. */
+export type FeedItem = ShelfEntry & { user: { handle: string; name: string; tone: string } };

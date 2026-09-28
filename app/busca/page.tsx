@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { BookGrid } from "@/components/book-grid";
+import { SearchCombobox } from "@/components/search-combobox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { plural } from "@/lib/format";
 import { searchBooks } from "@/lib/openlibrary";
@@ -22,18 +23,7 @@ export default async function SearchPage({ searchParams }: Props) {
 
   return (
     <div className="container-page animate-fade-up pt-10 sm:pt-14">
-      <form role="search" action="/busca" className="relative mx-auto max-w-2xl">
-        <Search className="pointer-events-none absolute top-1/2 left-5 size-5 -translate-y-1/2 text-ink-4" aria-hidden />
-        <input
-          type="search"
-          name="q"
-          defaultValue={q}
-          autoFocus={!q}
-          placeholder="Título, autor ou ISBN"
-          aria-label="Buscar livros"
-          className="h-14 w-full rounded-full border border-line bg-surface pr-5 pl-13 text-base text-ink shadow-card outline-none placeholder:text-ink-4 focus:border-line-strong focus:shadow-[0_0_0_4px_var(--anil-soft)]"
-        />
-      </form>
+      <SearchCombobox key={q} variant="page" defaultValue={q} autoFocus={!q} />
 
       {q ? (
         <Suspense key={q} fallback={<ResultsSkeleton />}>

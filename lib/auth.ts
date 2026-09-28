@@ -14,7 +14,7 @@ export type { Profile };
 export type AuthState =
   | { status: "loading" }
   | { status: "guest" }
-  | { status: "user"; profile: Profile };
+  | { status: "user"; profile: Profile; /** Handles de quem a pessoa segue. */ following: string[] };
 
 let state: AuthState = { status: "loading" };
 const listeners = new Set<() => void>();
@@ -37,7 +37,14 @@ export function useAuth(): AuthState {
 }
 
 export function updateProfile(profile: Profile) {
-  if (state.status === "user") setAuth({ status: "user", profile });
+  if (state.status === "user") setAuth({ ...state, profile });
+}
+
+/** Atualiza a lista de quem a pessoa segue (otimista; o botão desfaz se o servidor recusar). */
+export function setFollowing(handle: string, follow: boolean) {
+  if (state.status !== "user") return;
+  const rest = state.following.filter((h) => h !== handle);
+  setAuth({ ...state, following: follow ? [...rest, handle] : rest });
 }
 
 // O que está ligado neste ambiente (contas, GitHub, login de teste), vindo do servidor.

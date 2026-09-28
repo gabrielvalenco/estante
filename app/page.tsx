@@ -2,6 +2,7 @@ import { ArrowRight, BookOpen, Bookmark, Check } from "lucide-react";
 import Link from "next/link";
 
 import { BookCover } from "@/components/book-cover";
+import { CoverFan } from "@/components/cover-fan";
 import { ListCard } from "@/components/list-card";
 import { ReviewCard } from "@/components/review-card";
 import { SectionHeader, Shelf } from "@/components/shelf";
@@ -56,7 +57,7 @@ export default async function Home() {
   return (
     <>
       {/* Hero */}
-      <section className="overflow-hidden pt-16 pb-12 sm:pt-24 sm:pb-16">
+      <section className="overflow-x-clip pt-16 pb-16 sm:pt-24 sm:pb-20">
         <div className="container-page animate-fade-up text-center">
           <h1 className="mx-auto max-w-3xl text-hero font-semibold text-ink">{SITE.tagline}</h1>
           <p className="mx-auto mt-5 max-w-xl text-[1.0625rem] leading-relaxed text-ink-3 sm:text-lg">
@@ -75,7 +76,7 @@ export default async function Home() {
           </div>
         </div>
 
-        <CoverFan />
+        <CoverFan books={HERO} />
       </section>
 
       {/* Os três estados, nas cores do logo */}
@@ -161,34 +162,6 @@ export default async function Home() {
         </div>
       </section>
     </>
-  );
-}
-
-/** Leque de capas do hero, como cartas na mão. Some a rotação no celular para caber mais. */
-function CoverFan() {
-  const mid = (HERO.length - 1) / 2;
-  return (
-    <div className="relative mx-auto mt-14 flex max-w-5xl items-end justify-center px-4 sm:mt-20" aria-hidden>
-      {HERO.map((book, i) => {
-        const d = i - mid;
-        return (
-          <Link
-            key={book.id}
-            href={`/livro/${book.id}`}
-            tabIndex={-1}
-            className="w-[22%] shrink-0 transition-transform duration-500 ease-out hover:z-20 hover:-translate-y-3 sm:w-[16%] [&:nth-child(1)]:hidden [&:nth-child(7)]:hidden sm:[&:nth-child(1)]:block sm:[&:nth-child(7)]:block"
-            style={{
-              marginInline: "-1.2%",
-              zIndex: 10 - Math.abs(d),
-              rotate: `${d * 4}deg`,
-              translate: `0 ${Math.abs(d) ** 1.6 * 10}px`,
-            }}
-          >
-            <BookCover book={book} size="L" priority />
-          </Link>
-        );
-      })}
-    </div>
   );
 }
 

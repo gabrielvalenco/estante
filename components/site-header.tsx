@@ -2,12 +2,14 @@
 
 import { Library, Search } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState, type FormEvent } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 import { AccountMenu } from "@/components/account-menu";
 import { Wordmark } from "@/components/brand";
+import { SearchCombobox } from "@/components/search-combobox";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 import { useLibrary } from "@/lib/library";
 
 const NAV = [
@@ -24,6 +26,8 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const library = useLibrary();
+  const auth = useAuth();
+  const nav = auth.status === "user" ? [...NAV, { href: "/seguindo", label: "Seguindo" }] : NAV;
   const count = Object.values(library).filter((e) => e.status).length;
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export function SiteHeader() {
         <Wordmark />
 
         <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
-          {NAV.map((item) => {
+          {nav.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
               <Link
@@ -102,32 +106,8 @@ export function SiteHeader() {
 }
 
 function HeaderSearch() {
-  const router = useRouter();
   const params = useSearchParams();
   const pathname = usePathname();
-  const [q, setQ] = useState(pathname === "/busca" ? (params.get("q") ?? "") : "");
-
-  useEffect(() => {
-    if (pathname !== "/busca") setQ("");
-  }, [pathname]);
-
-  function submit(e: FormEvent) {
-    e.preventDefault();
-    const value = q.trim();
-    router.push(value ? `/busca?q=${encodeURIComponent(value)}` : "/busca");
-  }
-
-  return (
-    <form role="search" onSubmit={submit} className="relative hidden sm:block">
-      <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-4" aria-hidden />
-      <input
-        type="search"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Buscar livro ou autor"
-        aria-label="Buscar livro ou autor"
-        className="h-9 w-48 rounded-full bg-sunken pr-3 pl-9 text-sm text-ink transition-[width,background-color,box-shadow] duration-300 ease-out outline-none placeholder:text-ink-4 focus:w-64 focus:bg-surface focus:shadow-[0_0_0_1px_var(--line-strong),0_0_0_4px_var(--anil-soft)] lg:w-56 lg:focus:w-72"
-      />
-    </form>
-  );
+  // Na página de busca, o campo do header começa com o termo pesquisado.
+  return <SearchCombobox variant="header" defaultValue={pathname === "/busca" ? (params.get("q") ?? "") : ""} />;
 }
