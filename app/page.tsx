@@ -2,22 +2,44 @@ import { ArrowRight, BookOpen, Bookmark, Check } from "lucide-react";
 import Link from "next/link";
 
 import { BookCover } from "@/components/book-cover";
-import { CoverFan } from "@/components/cover-fan";
+import { CoverFan, type FanBook } from "@/components/cover-fan";
 import { ListCard } from "@/components/list-card";
 import { ReviewCard } from "@/components/review-card";
 import { SectionHeader, Shelf } from "@/components/shelf";
 import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
-import { books } from "@/lib/books";
+import { BOOKS, books } from "@/lib/books";
 import { bookStats, LISTS, REVIEWS } from "@/lib/data/social";
 import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
 import { recentReviews } from "@/lib/db/queries";
 import { formatAverage } from "@/lib/format";
+import { seededRandom } from "@/lib/recommend";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
-// Leque do hero: capas com cores bem diferentes entre si.
-const HERO = books("OL1168083W", "OL24141556W", "OL796465W", "OL21745884W", "OL274505W", "OL18203673W", "OL10263W");
+// Catálogo que o leque usa para recomendar e girar: só o necessário para a capa (sem sinopse).
+const FAN_CATALOG: FanBook[] = BOOKS.filter((b) => b.coverId).map(({ id, title, author, coverId, color, year, pages, genres }) => ({
+  id,
+  title,
+  author,
+  coverId,
+  color,
+  year,
+  pages,
+  genres,
+}));
+
+/** Leque inicial, igual para todos até a próxima revalidação: muda a cada 10 minutos. */
+function initialFan(): FanBook[] {
+  const random = seededRandom(Math.floor(Date.now() / 600_000));
+  const pool = [...FAN_CATALOG];
+  // Fisher-Yates com a semente do intervalo.
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, 7);
+}
 const POPULAR = books("OL18203673W", "OL21745884W", "OL24141556W", "OL1003040W", "OL8479867W", "OL1168083W");
 
 const STATES = [
@@ -76,7 +98,7 @@ export default async function Home() {
           </div>
         </div>
 
-        <CoverFan books={HERO} />
+        <CoverFan initial={initialFan()} catalog={FAN_CATALOG} />
       </section>
 
       {/* Os três estados, nas cores do logo */}

@@ -1,5 +1,7 @@
 /** Formatação em português do Brasil. */
 
+import { todayISO } from "@/lib/dates";
+
 export function formatRating(v: number) {
   return v.toLocaleString("pt-BR", { minimumFractionDigits: v % 1 ? 1 : 0, maximumFractionDigits: 1 });
 }
@@ -17,7 +19,7 @@ export function formatCount(n: number) {
 }
 
 /** "hoje", "ontem", "há 3 dias", "12 de set." */
-export function formatRelative(iso: string, today = new Date().toISOString().slice(0, 10)) {
+export function formatRelative(iso: string, today = todayISO()) {
   const days = Math.round((Date.parse(today) - Date.parse(iso)) / 86_400_000);
   if (days <= 0) return "hoje";
   if (days === 1) return "ontem";

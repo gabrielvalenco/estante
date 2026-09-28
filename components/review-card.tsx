@@ -17,11 +17,11 @@ export function ReviewCard({ review, withBook = false, className }: { review: Re
   const { user, book } = review;
 
   return (
-    <article className={cn("flex gap-4", className)}>
+    <article className={cn("flex min-w-0 gap-4", className)}>
       {withBook && <BookCover book={book} size="M" href={`/livro/${book.id}`} className="w-16 shrink-0 sm:w-[72px]" />}
       <div className="min-w-0 flex-1">
         {withBook && (
-          <h3 className="mb-1 truncate text-[0.9375rem] font-semibold tracking-tight text-ink">
+          <h3 className="mb-1 line-clamp-2 text-[0.9375rem] leading-snug font-semibold tracking-tight break-words text-ink">
             <Link href={`/livro/${book.id}`} className="hover:underline">
               {book.title}
             </Link>{" "}

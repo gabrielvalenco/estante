@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -8,6 +8,7 @@ import { auth } from "@/auth";
 import { db } from "@/lib/db";
 import { entries, follows, profiles, RESERVED_HANDLES } from "@/lib/db/schema";
 import { toProfile, type FeedItem, type Profile, type ShelfEntry } from "@/lib/db/types";
+import type { FollowedPick } from "@/lib/recommend";
 
 /**
  * Server actions da estante. Toda escrita:
@@ -289,6 +290,32 @@ export async function getFollowingFeed(): Promise<FeedItem[] | null> {
     user: { handle, name, tone },
     ...toShelfEntry(entry),
   }));
+}
+
+/**
+ * Livros que quem a pessoa segue curtiu ou avaliou com 4+ estrelas, agrupados, com quantas
+ * pessoas gostaram de cada um. Alimenta as recomendações da home. Só o necessário para a capa.
+ */
+export async function getFollowingPicks(): Promise<FollowedPick[]> {
+  const me = await currentProfileId();
+  if (!me || !db) return [];
+  const followed = db.select({ id: follows.followingId }).from(follows).where(eq(follows.followerId, me));
+  return db
+    .select({
+      id: entries.bookId,
+      title: sql<string>`max(${entries.bookTitle})`,
+      author: sql<string>`max(${entries.bookAuthor})`,
+      coverId: sql<number | null>`max(${entries.bookCoverId})`,
+      color: sql<string>`max(${entries.bookColor})`,
+      year: sql<number | null>`max(${entries.bookYear})`,
+      pages: sql<number | null>`max(${entries.bookPages})`,
+      fans: sql<number>`count(*)::int`,
+    })
+    .from(entries)
+    .where(and(inArray(entries.userId, followed), or(eq(entries.liked, true), gte(entries.rating, "4"))))
+    .groupBy(entries.bookId)
+    .orderBy(desc(sql`count(*)`))
+    .limit(40);
 }
 
 // ------------------------------------------------------------

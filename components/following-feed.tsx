@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, useAuthFlags } from "@/lib/auth";
+import { toISODate } from "@/lib/dates";
 import type { FeedItem } from "@/lib/db/types";
 import { formatRelative } from "@/lib/format";
 
@@ -97,7 +98,7 @@ export function FollowingFeed() {
                   {item.rating && <Stars value={item.rating} size={13} />}
                   {item.liked && <Heart className="size-3.5 fill-ameixa text-ameixa" aria-label="Curtiu" />}
                   <time dateTime={new Date(item.updatedAt).toISOString()}>
-                    {formatRelative(new Date(item.updatedAt).toISOString().slice(0, 10))}
+                    {formatRelative(toISODate(new Date(item.updatedAt)))}
                   </time>
                 </p>
                 {item.review && (

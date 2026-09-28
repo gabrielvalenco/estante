@@ -9,6 +9,7 @@ import { LogDialog } from "@/components/log-dialog";
 import { StarInput } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import type { Book } from "@/lib/books";
+import { todayISO } from "@/lib/dates";
 import { saveEntry, STATUS_LABEL, useEntry, type Status } from "@/lib/library";
 import { cn } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ export function BookActions({ book }: { book: Book }) {
     const value = status === next ? null : next;
     saveEntry(book, {
       status: value,
-      finishedOn: value === "lido" ? (entry?.finishedOn ?? new Date().toISOString().slice(0, 10)) : entry?.finishedOn ?? null,
+      finishedOn: value === "lido" ? (entry?.finishedOn ?? todayISO()) : entry?.finishedOn ?? null,
     });
     if (value) toast(TOAST[value], { description: book.title });
     else toast("Removido da sua estante", { description: book.title });
@@ -81,7 +82,7 @@ export function BookActions({ book }: { book: Book }) {
                 rating,
                 // Dar nota implica que leu, a menos que esteja lendo agora.
                 status: rating && status !== "lendo" ? "lido" : status,
-                finishedOn: rating && !entry?.finishedOn ? new Date().toISOString().slice(0, 10) : entry?.finishedOn ?? null,
+                finishedOn: rating && !entry?.finishedOn ? todayISO() : entry?.finishedOn ?? null,
               });
             }}
           />

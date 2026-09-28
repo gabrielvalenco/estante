@@ -5,12 +5,14 @@ import { toast } from "sonner";
 
 import { LikeButton } from "@/components/like-button";
 import { BookCover } from "@/components/book-cover";
+import { DatePicker, type DayMark } from "@/components/date-picker";
 import { StarInput } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { Book } from "@/lib/books";
-import { saveEntry, useEntry } from "@/lib/library";
+import { todayISO } from "@/lib/dates";
+import { saveEntry, useEntry, useLibrary } from "@/lib/library";
 
 const MAX = 600;
 
@@ -18,12 +20,20 @@ const MAX = 600;
 export function LogDialog({ book, trigger }: { book: Book; trigger: ReactElement }) {
   const entry = useEntry(book.id);
   const [open, setOpen] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const library = useLibrary();
+  const today = todayISO();
 
   const [date, setDate] = useState(today);
   const [rating, setRating] = useState<number | null>(null);
   const [liked, setLiked] = useState(false);
   const [review, setReview] = useState("");
+
+  // Outras leituras terminadas viram pontinhos no calendário, na cor da capa.
+  const marks = new Map<string, DayMark[]>();
+  for (const e of Object.values(library)) {
+    if (e.status !== "lido" || !e.finishedOn || e.book.id === book.id) continue;
+    marks.set(e.finishedOn, [...(marks.get(e.finishedOn) ?? []), { title: e.book.title, color: e.book.color }]);
+  }
 
   function onOpenChange(next: boolean) {
     if (next) {
@@ -45,7 +55,8 @@ export function LogDialog({ book, trigger }: { book: Book; trigger: ReactElement
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="gap-0 rounded-3xl p-0 sm:max-w-lg">
+      {/* No celular o diálogo é mais alto que a tela: cabeçalho e botões ficam fixos e só o meio rola. */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden rounded-3xl p-0 sm:max-w-lg">
         <div className="flex gap-4 border-b border-line p-5 pr-12">
           <BookCover book={book} size="M" className="w-12 shrink-0" priority />
           <div className="min-w-0">
@@ -56,17 +67,11 @@ export function LogDialog({ book, trigger }: { book: Book; trigger: ReactElement
           </div>
         </div>
 
-        <div className="grid gap-5 p-5">
-          <label className="grid gap-1.5">
+        <div className="grid content-start gap-5 overflow-y-auto overscroll-contain p-5">
+          <div className="grid gap-1.5">
             <span className="text-xs font-medium text-ink-3">Terminei em</span>
-            <input
-              type="date"
-              value={date}
-              max={today}
-              onChange={(e) => setDate(e.target.value)}
-              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-[0.9375rem] outline-none focus:border-line-strong focus:shadow-[0_0_0_4px_var(--anil-soft)]"
-            />
-          </label>
+            <DatePicker label="Terminei em" value={date} max={today} onChange={setDate} marks={marks} />
+          </div>
 
           <div className="flex items-end justify-between gap-3">
             <div>
