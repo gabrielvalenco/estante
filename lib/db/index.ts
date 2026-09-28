@@ -4,6 +4,7 @@ import { drizzle, type PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
 import * as schema from "@/lib/db/schema";
+import { normalizeDatabaseUrl } from "@/lib/db/url";
 
 /**
  * Conexão com o Postgres (Neon em produção, Docker no desenvolvimento).
@@ -17,7 +18,7 @@ type DB = PostgresJsDatabase<typeof schema>;
 const globalForDb = globalThis as unknown as { estanteDb?: DB };
 
 function create(): DB | null {
-  const url = process.env.DATABASE_URL;
+  const url = normalizeDatabaseUrl(process.env.DATABASE_URL);
   if (!url) return null;
   // `prepare: false` porque o pooler do Neon (PgBouncer) não suporta prepared statements.
   const client = postgres(url, { prepare: false, max: process.env.NODE_ENV === "production" ? 1 : 5 });
