@@ -1,49 +1,73 @@
 "use client";
 
+import { SessionProvider, useSession } from "next-auth/react";
 import { useEffect } from "react";
 
-import { setAuth } from "@/lib/auth";
-import { connectAccount, disconnectAccount } from "@/lib/library";
-import { getBrowserClient } from "@/lib/supabase/client";
+import { getMyAccount } from "@/app/actions";
+import { AuthFlagsContext, setAuth } from "@/lib/auth";
+import type { AuthFlags } from "@/lib/auth-flags";
+import { beginAccountLoad, connectAccount, disconnectAccount } from "@/lib/library";
 
 /**
- * Ouve a sessão do Supabase e mantém o estado de autenticação e a estante no modo certo.
- * Montado uma vez no layout. Sem Supabase configurado, todo mundo é visitante.
+ * Liga o estado de autenticação e o modo da estante à sessão do Auth.js.
+ * Sem contas configuradas, todo mundo é visitante e nem o SessionProvider é montado
+ * (ele chamaria /api/auth/session, que não existe nesse modo).
  */
-export function AuthSync() {
+export function AuthProvider({ flags, children }: { flags: AuthFlags; children: React.ReactNode }) {
+  return (
+    <AuthFlagsContext.Provider value={flags}>
+      {flags.accounts ? (
+        <SessionProvider>
+          <SessionSync />
+          {children}
+        </SessionProvider>
+      ) : (
+        <>
+          <GuestOnly />
+          {children}
+        </>
+      )}
+    </AuthFlagsContext.Provider>
+  );
+}
+
+function GuestOnly() {
   useEffect(() => {
-    const sb = getBrowserClient();
-    if (!sb) {
+    setAuth({ status: "guest" });
+    disconnectAccount();
+  }, []);
+  return null;
+}
+
+function SessionSync() {
+  const { status, data } = useSession();
+  const userId = data?.user?.id;
+
+  useEffect(() => {
+    if (status === "loading") return;
+    if (status === "unauthenticated" || !userId) {
       setAuth({ status: "guest" });
+      disconnectAccount();
       return;
     }
 
-    let currentUser: string | null = null;
-
-    async function apply(user: { id: string; email?: string } | null) {
-      if (!user) {
-        currentUser = null;
+    let cancelled = false;
+    beginAccountLoad();
+    void getMyAccount().then(async (account) => {
+      if (cancelled) return;
+      if (!account) {
+        // Sessão de um perfil que não existe mais (ex.: banco recriado).
         setAuth({ status: "guest" });
         disconnectAccount();
         return;
       }
-      if (user.id === currentUser) return;
-      currentUser = user.id;
-      setAuth({ status: "user", userId: user.id, email: user.email ?? null, profile: null });
-      const [{ data: profile }] = await Promise.all([
-        sb!.from("profiles").select("*").eq("id", user.id).single(),
-        connectAccount(user.id),
-      ]);
-      if (currentUser === user.id) setAuth({ status: "user", userId: user.id, email: user.email ?? null, profile });
-    }
-
-    // O evento INITIAL_SESSION chega logo na inscrição, com ou sem sessão.
-    const { data } = sb.auth.onAuthStateChange((_event, session) => {
-      // Fora do callback: chamadas ao Supabase dentro dele podem travar a fila de auth.
-      setTimeout(() => void apply(session?.user ?? null), 0);
+      setAuth({ status: "user", profile: account.profile });
+      await connectAccount(account.shelf);
     });
-    return () => data.subscription.unsubscribe();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [status, userId]);
 
   return null;
 }

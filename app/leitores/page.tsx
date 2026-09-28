@@ -6,7 +6,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { books } from "@/lib/books";
 import { reviewsBy, USERS } from "@/lib/data/social";
 import { plural } from "@/lib/format";
-import { recentReaders } from "@/lib/supabase/queries";
+import { recentReaders } from "@/lib/db/queries";
 
 export const metadata: Metadata = { title: "Leitores" };
 export const revalidate = 300;
@@ -66,8 +66,8 @@ export default async function ReadersPage() {
                 <div className="mt-4 grid grid-cols-4 gap-2">
                   {p.entries.map((e) => (
                     <BookCover
-                      key={e.book_id}
-                      book={{ id: e.book_id, title: e.book_title, author: e.book_author, coverId: e.book_cover_id, color: e.book_color }}
+                      key={e.bookId}
+                      book={{ id: e.bookId, title: e.bookTitle, author: e.bookAuthor, coverId: e.bookCoverId, color: e.bookColor }}
                       size="M"
                     />
                   ))}

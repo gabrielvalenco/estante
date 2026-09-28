@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { books } from "@/lib/books";
 import { bookStats, LISTS, REVIEWS } from "@/lib/data/social";
 import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
-import { recentReviews } from "@/lib/supabase/queries";
+import { recentReviews } from "@/lib/db/queries";
 import { formatAverage } from "@/lib/format";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";

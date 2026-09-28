@@ -3,34 +3,26 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { revalidateShelf } from "@/app/actions";
+import { importEntriesAction, saveEntryAction } from "@/app/actions";
 import type { Book } from "@/lib/books";
-import { getBrowserClient } from "@/lib/supabase/client";
-import type { Tables, TablesInsert } from "@/lib/supabase/database.types";
+import type { ShelfEntry } from "@/lib/db/types";
 
 /**
  * A estante de quem está usando o app, com dois modos:
  *   - "local": sem login, fica no localStorage deste navegador.
- *   - "remote": com login, fica no Supabase. A tela atualiza na hora (otimista)
- *     e volta atrás com um aviso se o banco recusar.
+ *   - "remote": com login, fica no Postgres via server actions. A tela atualiza na hora
+ *     (otimista) e volta atrás com um aviso se o servidor recusar.
  * Os componentes não sabem qual modo está ativo: usam `useLibrary`, `useEntry` e `saveEntry`.
  */
 
 export type Status = "quero-ler" | "lendo" | "lido";
 
-export type Entry = {
+export type Entry = ShelfEntry & {
   book: Pick<Book, "id" | "title" | "author" | "coverId" | "color" | "year" | "pages">;
-  status: Status | null;
-  rating: number | null;
-  liked: boolean;
-  review: string;
-  /** Data em que terminou (AAAA-MM-DD), só para "lido". */
-  finishedOn: string | null;
-  updatedAt: number;
 };
 
 type Entries = Record<string, Entry>;
-type Mode = { kind: "local" } | { kind: "remote"; userId: string };
+type Mode = { kind: "local" } | { kind: "remote" };
 
 const KEY = "estante:v1";
 const EMPTY: Entries = {};
@@ -41,9 +33,13 @@ let mode: Mode = { kind: "local" };
 /** true enquanto a estante da conta está sendo buscada. */
 let loading = false;
 
+function notify() {
+  listeners.forEach((l) => l());
+}
+
 function setLoading(value: boolean) {
   loading = value;
-  listeners.forEach((l) => l());
+  notify();
 }
 
 // ------------------------------------------------------------
@@ -79,7 +75,7 @@ function current(): Entries {
 function set(next: Entries) {
   entries = next;
   if (mode.kind === "local") writeLocal(next);
-  listeners.forEach((l) => l());
+  notify();
 }
 
 function subscribe(listener: () => void) {
@@ -101,57 +97,13 @@ export function useLibrary(): Entries {
   return useSyncExternalStore(subscribe, current, () => EMPTY);
 }
 
-/** "loading" enquanto a estante da conta ainda não chegou. Evita mostrar "estante vazia" por um instante. */
+/** true enquanto a estante da conta ainda não chegou. Evita mostrar "estante vazia" por um instante. */
 export function useLibraryLoading(): boolean {
   return useSyncExternalStore(subscribe, () => loading, () => true);
 }
 
 export function useEntry(bookId: string): Entry | undefined {
   return useLibrary()[bookId];
-}
-
-// ------------------------------------------------------------
-// Conversão linha do banco <-> Entry
-// ------------------------------------------------------------
-
-type Row = Tables<"entries">;
-
-export function rowToEntry(row: Row): Entry {
-  return {
-    book: {
-      id: row.book_id,
-      title: row.book_title,
-      author: row.book_author,
-      coverId: row.book_cover_id,
-      color: row.book_color,
-      year: row.book_year,
-      pages: row.book_pages,
-    },
-    status: row.status as Status | null,
-    rating: row.rating === null ? null : Number(row.rating),
-    liked: row.liked,
-    review: row.review,
-    finishedOn: row.finished_on,
-    updatedAt: Date.parse(row.updated_at),
-  };
-}
-
-function entryToRow(userId: string, e: Entry): TablesInsert<"entries"> {
-  return {
-    user_id: userId,
-    book_id: e.book.id,
-    book_title: e.book.title.slice(0, 300),
-    book_author: e.book.author.slice(0, 200),
-    book_cover_id: e.book.coverId,
-    book_color: e.book.color.toLowerCase(),
-    book_year: e.book.year,
-    book_pages: e.book.pages,
-    status: e.status,
-    rating: e.rating,
-    liked: e.liked,
-    review: e.review,
-    finished_on: e.finishedOn,
-  };
 }
 
 function isEmpty(e: Entry) {
@@ -162,42 +114,39 @@ function isEmpty(e: Entry) {
 // Troca de modo (chamado pelo AuthSync)
 // ------------------------------------------------------------
 
-/**
- * Entrou: carrega a estante da conta e sobe o que estava no navegador.
- * Em conflito, vale a versão alterada por último.
- */
-export async function connectAccount(userId: string) {
-  if (mode.kind === "remote" && mode.userId === userId) return;
-  const sb = getBrowserClient();
-  if (!sb) return;
-
-  const local = readLocal();
-  mode = { kind: "remote", userId };
+export function beginAccountLoad() {
+  mode = { kind: "remote" };
   entries = {};
   setLoading(true);
+}
 
-  const { data, error } = await sb.from("entries").select("*").eq("user_id", userId).order("updated_at", { ascending: false });
-  if (error) {
-    toast.error("Não foi possível carregar sua estante", { description: "Tente recarregar a página." });
-    set({});
-    setLoading(false);
-    return;
-  }
+/**
+ * Entrou: recebe a estante da conta e sobe o que estava no navegador.
+ * Em conflito, vale a versão alterada por último (o servidor decide).
+ */
+export async function connectAccount(shelf: ShelfEntry[]) {
+  const local = readLocal();
+  mode = { kind: "remote" };
+  const remote: Entries = Object.fromEntries(shelf.map((e) => [e.book.id, e]));
 
-  const remote: Entries = Object.fromEntries(data.map((r) => [r.book_id, rowToEntry(r)]));
-  const toUpload = Object.values(local).filter((e) => !isEmpty(e) && (!remote[e.book.id] || e.updatedAt > remote[e.book.id].updatedAt));
+  const toUpload = Object.values(local).filter(
+    (e) => !isEmpty(e) && (!remote[e.book.id] || e.updatedAt > remote[e.book.id].updatedAt),
+  );
 
   if (toUpload.length) {
-    const { error: upErr } = await sb.from("entries").upsert(toUpload.map((e) => entryToRow(userId, e)));
-    if (upErr) {
+    const result = await importEntriesAction(toUpload);
+    if (result.ok) {
+      toUpload.forEach((e) => (remote[e.book.id] = e));
+      writeLocal({});
+      toast(
+        toUpload.length === 1
+          ? "1 livro deste navegador foi salvo na sua conta"
+          : `${toUpload.length} livros deste navegador foram salvos na sua conta`,
+      );
+    } else {
       toast.error("Não foi possível salvar os livros deste navegador na sua conta", {
         description: "Eles continuam guardados aqui. Entre de novo para tentar outra vez.",
       });
-    } else {
-      toUpload.forEach((e) => (remote[e.book.id] = e));
-      writeLocal({});
-      toast(toUpload.length === 1 ? "1 livro deste navegador foi salvo na sua conta" : `${toUpload.length} livros deste navegador foram salvos na sua conta`);
-      void revalidateShelf();
     }
   } else if (Object.keys(local).length) {
     writeLocal({});
@@ -207,7 +156,7 @@ export async function connectAccount(userId: string) {
   setLoading(false);
 }
 
-/** Saiu: volta a usar o navegador. */
+/** Saiu (ou não há contas): volta a usar o navegador. */
 export function disconnectAccount() {
   mode = { kind: "local" };
   entries = null;
@@ -242,26 +191,20 @@ export function saveEntry(book: Book, patch: Partial<Omit<Entry, "book" | "updat
   else copy[book.id] = next;
   set(copy);
 
-  if (mode.kind === "remote") void persist(mode.userId, book.id, isEmpty(next) ? null : next, prev);
+  if (mode.kind === "remote") void persist(next, prev);
 }
 
-async function persist(userId: string, bookId: string, next: Entry | null, prev: Entry | undefined) {
-  const sb = getBrowserClient();
-  if (!sb) return;
-  const { error } = next
-    ? await sb.from("entries").upsert(entryToRow(userId, next))
-    : await sb.from("entries").delete().match({ user_id: userId, book_id: bookId });
+async function persist(next: Entry, prev: Entry | undefined) {
+  const bookId = next.book.id;
+  const result = await saveEntryAction(next).catch(() => ({ ok: false as const }));
+  if (result.ok) return;
 
-  if (error) {
-    // Desfaz só este livro, sem perder outras mudanças feitas enquanto isso.
-    const copy = { ...current() };
-    if (prev) copy[bookId] = prev;
-    else delete copy[bookId];
-    set(copy);
-    toast.error("Não foi possível salvar", { description: "Verifique sua conexão e tente de novo." });
-    return;
-  }
-  void revalidateShelf(bookId);
+  // Desfaz só este livro, sem perder outras mudanças feitas enquanto isso.
+  const copy = { ...current() };
+  if (prev) copy[bookId] = prev;
+  else delete copy[bookId];
+  set(copy);
+  toast.error("Não foi possível salvar", { description: "Verifique sua conexão e tente de novo." });
 }
 
 export function removeEntry(bookId: string) {
@@ -270,7 +213,8 @@ export function removeEntry(bookId: string) {
   const copy = { ...current() };
   delete copy[bookId];
   set(copy);
-  if (mode.kind === "remote") void persist(mode.userId, bookId, null, prev);
+  // Salvar um registro vazio remove do banco.
+  if (mode.kind === "remote") void persist({ ...prev, status: null, rating: null, liked: false, review: "" }, prev);
 }
 
 export const STATUS_LABEL: Record<Status, string> = {

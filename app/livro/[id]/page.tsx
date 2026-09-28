@@ -14,7 +14,7 @@ import { formatAverage, formatCount } from "@/lib/format";
 import { BOOKS } from "@/lib/books";
 import { getBook } from "@/lib/openlibrary";
 import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
-import { bookReviews } from "@/lib/supabase/queries";
+import { bookReviews } from "@/lib/db/queries";
 
 type Props = { params: Promise<{ id: string }> };
 

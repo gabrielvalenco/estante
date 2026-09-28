@@ -1,0 +1,342 @@
+{
+  "id": "70f825f9-9b71-4364-904c-9a4b553b8a5b",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.entries": {
+      "name": "entries",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "name": "book_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_title": {
+          "name": "book_title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_author": {
+          "name": "book_author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_cover_id": {
+          "name": "book_cover_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "book_color": {
+          "name": "book_color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_year": {
+          "name": "book_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "book_pages": {
+          "name": "book_pages",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rating": {
+          "name": "rating",
+          "type": "numeric(2, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "liked": {
+          "name": "liked",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "review": {
+          "name": "review",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "finished_on": {
+          "name": "finished_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "entries_user_updated_idx": {
+          "name": "entries_user_updated_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "entries_book_reviews_idx": {
+          "name": "entries_book_reviews_idx",
+          "columns": [
+            {
+              "expression": "book_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "updated_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"entries\".\"review\" <> ''",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "entries_user_id_profiles_id_fk": {
+          "name": "entries_user_id_profiles_id_fk",
+          "tableFrom": "entries",
+          "tableTo": "profiles",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "entries_user_id_book_id_pk": {
+          "name": "entries_user_id_book_id_pk",
+          "columns": [
+            "user_id",
+            "book_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "entries_book_id": {
+          "name": "entries_book_id",
+          "value": "\"entries\".\"book_id\" ~ '^OL[0-9]+W$'"
+        },
+        "entries_book_title": {
+          "name": "entries_book_title",
+          "value": "char_length(\"entries\".\"book_title\") between 1 and 300"
+        },
+        "entries_book_author": {
+          "name": "entries_book_author",
+          "value": "char_length(\"entries\".\"book_author\") <= 200"
+        },
+        "entries_book_color": {
+          "name": "entries_book_color",
+          "value": "\"entries\".\"book_color\" ~ '^#[0-9a-f]{6}$'"
+        },
+        "entries_book_pages": {
+          "name": "entries_book_pages",
+          "value": "\"entries\".\"book_pages\" is null or \"entries\".\"book_pages\" > 0"
+        },
+        "entries_status": {
+          "name": "entries_status",
+          "value": "\"entries\".\"status\" is null or \"entries\".\"status\" in ('quero-ler', 'lendo', 'lido')"
+        },
+        "entries_rating": {
+          "name": "entries_rating",
+          "value": "\"entries\".\"rating\" is null or (\"entries\".\"rating\" between 0.5 and 5 and \"entries\".\"rating\" * 2 = floor(\"entries\".\"rating\" * 2))"
+        },
+        "entries_review": {
+          "name": "entries_review",
+          "value": "char_length(\"entries\".\"review\") <= 600"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.profiles": {
+      "name": "profiles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "provider_id": {
+          "name": "provider_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "handle": {
+          "name": "handle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bio": {
+          "name": "bio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "tone": {
+          "name": "tone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'anil'"
+        },
+        "goal": {
+          "name": "goal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 24
+        },
+        "favorites": {
+          "name": "favorites",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "profiles_provider_id_unique": {
+          "name": "profiles_provider_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "provider_id"
+          ]
+        },
+        "profiles_handle_unique": {
+          "name": "profiles_handle_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "handle"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "profiles_handle_format": {
+          "name": "profiles_handle_format",
+          "value": "\"profiles\".\"handle\" ~ '^[a-z0-9_]{3,20}$'"
+        },
+        "profiles_handle_reserved": {
+          "name": "profiles_handle_reserved",
+          "value": "handle not in ('marina', 'theo', 'bia', 'caio', 'luiza', 'rafa')"
+        },
+        "profiles_name_length": {
+          "name": "profiles_name_length",
+          "value": "char_length(\"profiles\".\"name\") between 1 and 60"
+        },
+        "profiles_bio_length": {
+          "name": "profiles_bio_length",
+          "value": "char_length(\"profiles\".\"bio\") <= 200"
+        },
+        "profiles_tone": {
+          "name": "profiles_tone",
+          "value": "\"profiles\".\"tone\" in ('anil', 'ameixa', 'musgo', 'ambar')"
+        },
+        "profiles_goal": {
+          "name": "profiles_goal",
+          "value": "\"profiles\".\"goal\" between 1 and 365"
+        },
+        "profiles_favorites": {
+          "name": "profiles_favorites",
+          "value": "cardinality(\"profiles\".\"favorites\") <= 4"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

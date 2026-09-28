@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
-import { AuthSync } from "@/components/auth-sync";
+import { AuthProvider } from "@/components/auth-sync";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { authFlags } from "@/lib/auth-flags";
 import { SITE } from "@/lib/site";
 
 import "./globals.css";
@@ -33,13 +34,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="pt-BR" className={`${inter.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body>
         <ThemeProvider>
-          <TooltipProvider>
-            <SiteHeader />
-            <main className="relative isolate min-h-[calc(100dvh-3.5rem)]">{children}</main>
-            <SiteFooter />
-          </TooltipProvider>
-          <Toaster position="bottom-center" />
-          <AuthSync />
+          <AuthProvider flags={authFlags}>
+            <TooltipProvider>
+              <SiteHeader />
+              <main className="relative isolate min-h-[calc(100dvh-3.5rem)]">{children}</main>
+              <SiteFooter />
+            </TooltipProvider>
+            <Toaster position="bottom-center" />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,6 +1,6 @@
 import { getSeedBook, type Book } from "@/lib/books";
 import { getUser, type Review, type User } from "@/lib/data/social";
-import type { Tables } from "@/lib/supabase/database.types";
+import type { EntryRow } from "@/lib/db/schema";
 
 /** Review pronta para exibir, venha dos dados de demonstração ou do banco. */
 export type ReviewView = {
@@ -36,28 +36,21 @@ export function fromDemo(r: Review): ReviewView | null {
   };
 }
 
-export type EntryWithProfile = Tables<"entries"> & {
-  profile: Pick<Tables<"profiles">, "handle" | "name" | "tone"> | null;
+export type EntryWithProfile = {
+  entry: EntryRow;
+  profile: { handle: string; name: string; tone: string };
 };
 
-export function fromRow(row: EntryWithProfile): ReviewView | null {
-  if (!row.profile || !row.review) return null;
+export function fromRow({ entry: e, profile }: EntryWithProfile): ReviewView {
   return {
-    id: `${row.user_id}:${row.book_id}`,
-    user: row.profile,
-    book: {
-      id: row.book_id,
-      title: row.book_title,
-      author: row.book_author,
-      coverId: row.book_cover_id,
-      color: row.book_color,
-      year: row.book_year,
-    },
-    rating: row.rating === null ? null : Number(row.rating),
-    text: row.review,
-    date: (row.finished_on ?? row.updated_at).slice(0, 10),
+    id: `${e.userId}:${e.bookId}`,
+    user: profile,
+    book: { id: e.bookId, title: e.bookTitle, author: e.bookAuthor, coverId: e.bookCoverId, color: e.bookColor, year: e.bookYear },
+    rating: e.rating === null ? null : Number(e.rating),
+    text: e.review,
+    date: e.finishedOn ?? e.updatedAt.toISOString().slice(0, 10),
     likes: null,
-    liked: row.liked,
+    liked: e.liked,
     reread: false,
     spoiler: false,
   };

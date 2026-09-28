@@ -106,13 +106,13 @@ Base: shadcn/ui (Base UI) com os tokens acima mapeados nas variáveis do shadcn 
   cor. Tamanhos e sombras novos precisam entrar em `lib/utils.ts`.
 - **Capas com `<img>`, não `next/image`.** A Open Library redireciona para servidores do
   archive.org, que o otimizador não segue. Também evita gastar a cota de imagens da Vercel.
-- **Estante com dois modos.** Sem login, fica no `localStorage`; com login, no Supabase. Os componentes
+- **Estante com dois modos.** Sem login, fica no `localStorage`; com login, no Postgres (Neon) via server actions. Os componentes
   só conhecem `useLibrary`, `useEntry` e `saveEntry`. No primeiro login, o que estava no navegador sobe
   para a conta (em conflito, vale a alteração mais recente) e um toast avisa quantos livros foram.
 - **Salvar otimista.** A tela muda antes da resposta do banco; se falhar, só aquele livro volta ao
   estado anterior e aparece um toast de erro. Nunca um spinner para marcar status.
-- **Login sem senha.** Link mágico por e-mail (e GitHub quando configurado). A tela de "confira seu e-mail"
-  usa `--musgo-soft`, a cor de "concluído".
+- **Login com GitHub** (Auth.js). Em desenvolvimento, um login de teste só com o nome, marcado na tela como
+  "só em desenvolvimento" e desligado em produção pelo `NODE_ENV`.
 - **Estados de carregamento.** Antes de saber se há sessão, a estante mostra o esqueleto, nunca
   "sua estante está vazia", que seria mentira por um instante.
 - **Números agregados determinísticos.** Média e total de leitores são derivados do id do livro,

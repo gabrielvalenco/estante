@@ -3,8 +3,8 @@ import "server-only";
 import { books, getSeedBook, type Book } from "@/lib/books";
 import { diaryOf, getUser, LISTS, reviewsBy, type List } from "@/lib/data/social";
 import { fromDemo, type ReviewView } from "@/lib/reviews";
-import type { Tables } from "@/lib/supabase/database.types";
-import { profileByHandle } from "@/lib/supabase/queries";
+import { profileByHandle } from "@/lib/db/queries";
+import type { EntryRow } from "@/lib/db/schema";
 
 export type ProfileBook = Pick<Book, "id" | "title" | "author" | "coverId" | "color" | "year">;
 
@@ -61,22 +61,22 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
   const p = await profileByHandle(handle);
   if (!p) return null;
 
-  const toBook = (e: Tables<"entries">): ProfileBook => ({
-    id: e.book_id,
-    title: e.book_title,
-    author: e.book_author,
-    coverId: e.book_cover_id,
-    color: e.book_color,
-    year: e.book_year,
+  const toBook = (e: EntryRow): ProfileBook => ({
+    id: e.bookId,
+    title: e.bookTitle,
+    author: e.bookAuthor,
+    coverId: e.bookCoverId,
+    color: e.bookColor,
+    year: e.bookYear,
   });
 
   const read = p.entries.filter((e) => e.status === "lido");
-  const dateOf = (e: Tables<"entries">) => e.finished_on ?? e.updated_at.slice(0, 10);
+  const dateOf = (e: EntryRow) => e.finishedOn ?? e.updatedAt.toISOString().slice(0, 10);
   const year = String(new Date().getFullYear());
 
   // Favoritos escolhidos na conta; sem escolha, os lidos com nota mais alta.
-  const byId = new Map(p.entries.map((e) => [e.book_id, e]));
-  const chosen = p.favorites.map((id) => byId.get(id)).filter((e): e is Tables<"entries"> => Boolean(e));
+  const byId = new Map(p.entries.map((e) => [e.bookId, e]));
+  const chosen = p.favorites.map((id) => byId.get(id)).filter((e): e is EntryRow => Boolean(e));
   const favorites = (
     chosen.length
       ? chosen
@@ -99,7 +99,7 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
     reviews: p.entries
       .filter((e) => e.review)
       .map((e) => ({
-        id: `${e.user_id}:${e.book_id}`,
+        id: `${e.userId}:${e.bookId}`,
         user: profile,
         book: toBook(e),
         rating: e.rating === null ? null : Number(e.rating),

@@ -6,16 +6,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
-import { revalidateProfile } from "@/app/actions";
+import { updateProfileAction } from "@/app/actions";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { UserAvatar } from "@/components/user-avatar";
-import { updateProfile, useAuth, type Profile } from "@/lib/auth";
+import { updateProfile, useAuth, useAuthFlags, type Profile } from "@/lib/auth";
 import { useLibrary } from "@/lib/library";
-import { getBrowserClient } from "@/lib/supabase/client";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { cn } from "@/lib/utils";
 
 const TONES = [
@@ -30,6 +28,7 @@ type Draft = Pick<Profile, "name" | "handle" | "bio" | "goal" | "tone" | "favori
 export function AccountForm() {
   const auth = useAuth();
   const router = useRouter();
+  const { accounts } = useAuthFlags();
 
   // Só manda para o login quem chegou aqui sem conta. Quem acabou de sair
   // já está sendo levado para a home pelo menu; redirecionar aqui seria uma corrida.
@@ -39,14 +38,14 @@ export function AccountForm() {
     if (auth.status === "guest" && !wasUser.current) router.replace("/entrar?next=/conta");
   }, [auth.status, router]);
 
-  if (!isSupabaseConfigured) {
+  if (!accounts) {
     return <p className="text-ink-3">Contas estão desativadas nesta versão de demonstração.</p>;
   }
-  if (auth.status !== "user" || !auth.profile) return <FormSkeleton />;
-  return <Form key={auth.profile.id} profile={auth.profile} email={auth.email} />;
+  if (auth.status !== "user") return <FormSkeleton />;
+  return <Form key={auth.profile.id} profile={auth.profile} />;
 }
 
-function Form({ profile, email }: { profile: Profile; email: string | null }) {
+function Form({ profile }: { profile: Profile }) {
   const library = useLibrary();
   const [draft, setDraft] = useState<Draft>({
     name: profile.name,
@@ -89,25 +88,20 @@ function Form({ profile, email }: { profile: Profile; email: string | null }) {
   async function save(e: FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    const sb = getBrowserClient();
-    if (!sb) return;
     setSaving(true);
-    const { data, error } = await sb
-      .from("profiles")
-      .update({ ...draft, name: draft.name.trim(), bio: draft.bio.trim() })
-      .eq("id", profile.id)
-      .select()
-      .single();
+    const result = await updateProfileAction({
+      ...draft,
+      tone: draft.tone as "anil" | "ameixa" | "musgo" | "ambar",
+    }).catch(() => ({ ok: false as const, error: "unavailable" as const }));
     setSaving(false);
 
-    if (error) {
-      if (error.code === "23505") setErrors({ handle: "Esse @ já é de outra pessoa." });
-      else if (error.code === "23514") setErrors({ handle: "Esse @ não está disponível." });
+    if (!result.ok) {
+      if (result.error === "handle_taken") setErrors({ handle: "Esse @ já é de outra pessoa." });
+      else if (result.error === "handle_unavailable") setErrors({ handle: "Esse @ não está disponível." });
       else toast.error("Não foi possível salvar", { description: "Tente de novo em instantes." });
       return;
     }
-    updateProfile(data);
-    void revalidateProfile([profile.handle, data.handle]);
+    updateProfile(result.profile);
     toast("Perfil atualizado");
   }
 
@@ -117,7 +111,7 @@ function Form({ profile, email }: { profile: Profile; email: string | null }) {
         <UserAvatar user={draft} size={64} href={false} />
         <div>
           <h1 className="text-title font-semibold text-ink">Configurações</h1>
-          {email && <p className="text-sm text-ink-3">{email}</p>}
+          <p className="text-sm text-ink-3">@{profile.handle}</p>
         </div>
       </div>
 

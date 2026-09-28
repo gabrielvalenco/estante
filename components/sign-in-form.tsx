@@ -1,66 +1,32 @@
 "use client";
 
-import { ArrowLeft, Mail } from "lucide-react";
+import { FlaskConical } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { Mark } from "@/components/brand";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/lib/auth";
+import { useAuth, useAuthFlags } from "@/lib/auth";
 import { safeNext } from "@/lib/safe-next";
-import { getBrowserClient } from "@/lib/supabase/client";
-import { githubEnabled, isSupabaseConfigured } from "@/lib/supabase/env";
-
-type Step = { kind: "form"; error?: string } | { kind: "sending" } | { kind: "sent"; email: string };
 
 export function SignInForm() {
   const params = useSearchParams();
   const router = useRouter();
   const auth = useAuth();
-  const next = safeNext(params.get("next"));
-  const [email, setEmail] = useState("");
-  const [step, setStep] = useState<Step>(
-    params.get("erro") ? { kind: "form", error: "Esse link expirou ou já foi usado. Peça um novo abaixo." } : { kind: "form" },
-  );
+  const flags = useAuthFlags();
+  const next = safeNext(params.get("next") ?? params.get("callbackUrl"));
+  const [pending, setPending] = useState<"github" | "dev" | null>(null);
+  const [devName, setDevName] = useState("");
+  const failed = params.has("error");
 
   // Já está logado: segue para o destino.
   useEffect(() => {
     if (auth.status === "user") router.replace(next);
   }, [auth.status, next, router]);
 
-  const callback = () => `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-
-  async function sendLink(e: FormEvent) {
-    e.preventDefault();
-    const sb = getBrowserClient();
-    const value = email.trim();
-    if (!sb) return;
-    if (!/^\S+@\S+\.\S+$/.test(value)) {
-      setStep({ kind: "form", error: "Confira o e-mail: parece faltar alguma coisa." });
-      return;
-    }
-    setStep({ kind: "sending" });
-    const { error } = await sb.auth.signInWithOtp({ email: value, options: { emailRedirectTo: callback() } });
-    if (error) {
-      setStep({
-        kind: "form",
-        error:
-          error.status === 429
-            ? "Muitos pedidos em pouco tempo. Espere um minuto e tente de novo."
-            : "Não conseguimos enviar o link agora. Tente de novo em instantes.",
-      });
-      return;
-    }
-    setStep({ kind: "sent", email: value });
-  }
-
-  async function github() {
-    const sb = getBrowserClient();
-    await sb?.auth.signInWithOAuth({ provider: "github", options: { redirectTo: callback() } });
-  }
-
-  if (!isSupabaseConfigured) {
+  if (!flags.accounts) {
     return (
       <Card>
         <Mark size={44} />
@@ -75,75 +41,60 @@ export function SignInForm() {
     );
   }
 
-  if (step.kind === "sent") {
-    return (
-      <Card>
-        <span className="flex size-12 items-center justify-center rounded-full bg-musgo-soft text-musgo">
-          <Mail className="size-6" aria-hidden />
-        </span>
-        <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink">Confira seu e-mail</h1>
-        <p className="mt-2 text-ink-3" aria-live="polite">
-          Mandamos um link de acesso para <span className="font-medium text-ink">{step.email}</span>. Abra neste mesmo navegador.
-        </p>
-        <Button variant="ghost" className="mt-6 -ml-3 text-anil" onClick={() => setStep({ kind: "form" })}>
-          <ArrowLeft data-icon="inline-start" />
-          Usar outro e-mail
-        </Button>
-      </Card>
-    );
+  function github() {
+    setPending("github");
+    void signIn("github", { redirectTo: next });
   }
 
-  const sending = step.kind === "sending";
-  const error = step.kind === "form" ? step.error : undefined;
+  function devLogin(e: FormEvent) {
+    e.preventDefault();
+    if (!devName.trim()) return;
+    setPending("dev");
+    void signIn("dev", { name: devName.trim(), redirectTo: next });
+  }
 
   return (
     <Card>
       <Mark size={44} />
       <h1 className="mt-5 text-2xl font-semibold tracking-tight text-ink">Entre na Estante</h1>
-      <p className="mt-2 text-ink-3">
-        Sua estante em qualquer aparelho, com perfil público. Sem senha: enviamos um link para o seu e-mail.
-      </p>
+      <p className="mt-2 text-ink-3">Sua estante em qualquer aparelho, com perfil público para mostrar o que você lê.</p>
 
-      <form onSubmit={sendLink} className="mt-8 grid gap-3" noValidate>
-        <label className="grid gap-1.5">
-          <span className="text-xs font-medium text-ink-3">E-mail</span>
-          <input
-            type="email"
-            autoComplete="email"
-            inputMode="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="voce@exemplo.com"
-            aria-invalid={Boolean(error) || undefined}
-            aria-describedby={error ? "signin-error" : undefined}
-            className="h-12 w-full rounded-xl border border-line bg-surface px-4 text-base outline-none placeholder:text-ink-4 focus:border-line-strong focus:shadow-[0_0_0_4px_var(--anil-soft)] aria-invalid:border-destructive"
-          />
-        </label>
-        {error && (
-          <p id="signin-error" role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <Button type="submit" size="lg" disabled={sending} className="mt-1 w-full">
-          {sending ? "Enviando..." : "Enviar link de acesso"}
-        </Button>
-      </form>
-
-      {githubEnabled && (
-        <>
-          <div className="my-5 flex items-center gap-3 text-xs text-ink-4">
-            <span className="h-px flex-1 bg-line" /> ou <span className="h-px flex-1 bg-line" />
-          </div>
-          <Button type="button" size="lg" variant="outline" className="w-full" onClick={github}>
-            <GitHubIcon />
-            Continuar com GitHub
-          </Button>
-        </>
+      {failed && (
+        <p role="alert" className="mt-6 rounded-xl bg-sunken px-4 py-3 text-sm text-ink-2">
+          Não foi possível entrar. Tente de novo; se continuar, pode ser que o login esteja fora do ar agora.
+        </p>
       )}
 
-      <p className="mt-8 text-center text-[0.8125rem] text-ink-4">
-        O que você já marcou neste navegador vai junto para a sua conta.
-      </p>
+      {flags.github && (
+        <Button size="lg" className="mt-8 w-full" onClick={github} disabled={pending !== null}>
+          <GitHubIcon />
+          {pending === "github" ? "Abrindo o GitHub..." : "Continuar com GitHub"}
+        </Button>
+      )}
+
+      {flags.devLogin && (
+        <form onSubmit={devLogin} className="mt-8 grid gap-3 rounded-2xl border border-dashed border-line-strong p-4">
+          <p className="flex items-center gap-2 text-xs font-medium text-ink-3">
+            <FlaskConical className="size-3.5" aria-hidden />
+            Login de teste · só em desenvolvimento
+          </p>
+          <label className="grid gap-1.5">
+            <span className="sr-only">Nome do leitor de teste</span>
+            <input
+              value={devName}
+              onChange={(e) => setDevName(e.target.value)}
+              placeholder="Nome do leitor de teste"
+              maxLength={60}
+              className="h-11 w-full rounded-xl border border-line bg-surface px-4 text-base outline-none placeholder:text-ink-4 focus:border-line-strong focus:shadow-[0_0_0_4px_var(--anil-soft)]"
+            />
+          </label>
+          <Button type="submit" variant="secondary" disabled={pending !== null || !devName.trim()}>
+            {pending === "dev" ? "Entrando..." : "Entrar como leitor de teste"}
+          </Button>
+        </form>
+      )}
+
+      <p className="mt-8 text-center text-[0.8125rem] text-ink-4">O que você já marcou neste navegador vai junto para a sua conta.</p>
     </Card>
   );
 }
