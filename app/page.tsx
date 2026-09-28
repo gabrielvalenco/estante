@@ -9,6 +9,8 @@ import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import { books } from "@/lib/books";
 import { bookStats, LISTS, REVIEWS } from "@/lib/data/social";
+import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
+import { recentReviews } from "@/lib/supabase/queries";
 import { formatAverage } from "@/lib/format";
 import { SITE } from "@/lib/site";
 import { cn } from "@/lib/utils";
@@ -44,8 +46,12 @@ const STATES = [
   },
 ];
 
-export default function Home() {
-  const reviews = [...REVIEWS].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+// Feed com reviews reais: a página fica em cache e é atualizada quando alguém publica.
+export const revalidate = 300;
+
+export default async function Home() {
+  const demo = REVIEWS.map(fromDemo).filter((r): r is ReviewView => r !== null);
+  const reviews = [...(await recentReviews(6)), ...demo].sort(byNewest).slice(0, 6);
 
   return (
     <>

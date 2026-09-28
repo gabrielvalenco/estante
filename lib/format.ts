@@ -16,10 +16,8 @@ export function formatCount(n: number) {
   return n.toLocaleString("pt-BR");
 }
 
-const TODAY = "2026-09-28";
-
 /** "hoje", "ontem", "há 3 dias", "12 de set." */
-export function formatRelative(iso: string, today = TODAY) {
+export function formatRelative(iso: string, today = new Date().toISOString().slice(0, 10)) {
   const days = Math.round((Date.parse(today) - Date.parse(iso)) / 86_400_000);
   if (days <= 0) return "hoje";
   if (days === 1) return "ontem";

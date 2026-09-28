@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
+import { AuthSync } from "@/components/auth-sync";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <SiteFooter />
         </TooltipProvider>
         <Toaster position="bottom-center" />
+        <AuthSync />
       </body>
     </html>
   );

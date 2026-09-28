@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState, type FormEvent } from "react";
 
+import { AccountMenu } from "@/components/account-menu";
 import { Wordmark } from "@/components/brand";
 import { cn } from "@/lib/utils";
 import { useLibrary } from "@/lib/library";
@@ -93,6 +94,7 @@ export function SiteHeader() {
               </span>
             )}
           </Link>
+          <AccountMenu />
         </div>
       </div>
     </header>

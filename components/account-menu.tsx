@@ -1,0 +1,83 @@
+"use client";
+
+import { Library, LogOut, Settings, UserRound } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { toast } from "sonner";
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { UserAvatar } from "@/components/user-avatar";
+import { useAuth } from "@/lib/auth";
+import { getBrowserClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+
+/** "Entrar" para visitantes; avatar com menu para quem está logado. */
+export function AccountMenu() {
+  const auth = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  if (!isSupabaseConfigured) return null;
+  if (auth.status === "loading") return <span className="size-10 shrink-0" aria-hidden />;
+
+  if (auth.status === "guest") {
+    const next = pathname === "/" || pathname === "/entrar" ? "" : `?next=${encodeURIComponent(pathname)}`;
+    return (
+      <Link
+        href={`/entrar${next}`}
+        className="inline-flex h-10 shrink-0 items-center rounded-full px-3.5 text-sm font-medium text-anil transition-colors hover:bg-anil-soft"
+      >
+        Entrar
+      </Link>
+    );
+  }
+
+  const profile = auth.profile;
+  const user = profile ?? { handle: "", name: auth.email ?? "?", tone: "anil" as const };
+
+  async function signOut() {
+    await getBrowserClient()?.auth.signOut();
+    toast("Você saiu da sua conta");
+    router.push("/");
+    router.refresh();
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        aria-label="Menu da conta"
+        className="shrink-0 rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <UserAvatar user={user} size={36} href={false} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" sideOffset={8} className="w-60 rounded-2xl p-1.5">
+        <div className="px-2.5 py-2">
+          <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
+          {profile && <p className="truncate text-xs text-ink-3">@{profile.handle}</p>}
+        </div>
+        <DropdownMenuSeparator />
+        {profile && (
+          <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push(`/u/${profile.handle}`)}>
+            <UserRound /> Meu perfil
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/estante")}>
+          <Library /> Minha estante
+        </DropdownMenuItem>
+        <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/conta")}>
+          <Settings /> Configurações
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={signOut}>
+          <LogOut /> Sair
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}

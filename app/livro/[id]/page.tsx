@@ -13,10 +13,14 @@ import { bookStats, listsWith, reviewsFor } from "@/lib/data/social";
 import { formatAverage, formatCount } from "@/lib/format";
 import { BOOKS } from "@/lib/books";
 import { getBook } from "@/lib/openlibrary";
+import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
+import { bookReviews } from "@/lib/supabase/queries";
 
 type Props = { params: Promise<{ id: string }> };
 
 // Os livros de exemplo saem prontos do build. Qualquer outra obra da Open Library é gerada no primeiro acesso.
+export const revalidate = 300;
+
 export function generateStaticParams() {
   return BOOKS.map((b) => ({ id: b.id }));
 }
@@ -35,7 +39,9 @@ export default async function BookPage({ params }: Props) {
   if (!book) notFound();
 
   const stats = bookStats(book.id);
-  const reviews = reviewsFor(book.id);
+  // Reviews de gente de verdade primeiro, depois as de demonstração (por curtidas).
+  const demo = reviewsFor(book.id).map(fromDemo).filter((r): r is ReviewView => r !== null);
+  const reviews = [...(await bookReviews(book.id)).sort(byNewest), ...demo];
   const lists = listsWith(book.id);
 
   return (
