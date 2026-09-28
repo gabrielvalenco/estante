@@ -78,7 +78,7 @@ export function SiteHeader() {
             aria-current={pathname === "/estante" ? "page" : undefined}
             className={cn(
               "inline-flex h-10 items-center gap-2 rounded-full pr-3.5 pl-3 text-sm font-medium transition-colors",
-              pathname === "/estante" ? "bg-ink text-white" : "bg-sunken text-ink hover:bg-line",
+              pathname === "/estante" ? "bg-ink text-on-ink" : "bg-sunken text-ink hover:bg-line",
             )}
           >
             <Library className="size-[18px]" />
@@ -87,7 +87,7 @@ export function SiteHeader() {
               <span
                 className={cn(
                   "tnum -mr-1 min-w-5 rounded-full px-1.5 text-center text-xs leading-5",
-                  pathname === "/estante" ? "bg-white/20" : "bg-anil text-white",
+                  pathname === "/estante" ? "bg-on-ink/20" : "bg-anil text-on-brand",
                 )}
               >
                 {count}

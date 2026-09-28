@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Mark } from "@/components/brand";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { SITE } from "@/lib/site";
 
 export function SiteFooter() {
@@ -13,7 +14,7 @@ export function SiteFooter() {
             {SITE.name} é um projeto de portfólio. Leitores e reviews são fictícios.
           </span>
         </div>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
           <span>
             Dados e capas da{" "}
             <a href="https://openlibrary.org" className="text-ink-2 underline-offset-4 hover:underline" target="_blank" rel="noreferrer">
@@ -23,6 +24,7 @@ export function SiteFooter() {
           <Link href={SITE.repo} className="text-ink-2 underline-offset-4 hover:underline" target="_blank" rel="noreferrer">
             Código no GitHub
           </Link>
+          <ThemeToggle />
         </div>
       </div>
     </footer>

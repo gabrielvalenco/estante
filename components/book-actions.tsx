@@ -13,9 +13,9 @@ import { saveEntry, STATUS_LABEL, useEntry, type Status } from "@/lib/library";
 import { cn } from "@/lib/utils";
 
 export const STATUS_STYLE: Record<Status, { icon: typeof Check; active: string; soft: string; text: string }> = {
-  "quero-ler": { icon: Bookmark, active: "bg-anil text-white", soft: "bg-anil-soft", text: "text-anil" },
-  lendo: { icon: BookOpen, active: "bg-ameixa text-white", soft: "bg-ameixa-soft", text: "text-ameixa" },
-  lido: { icon: Check, active: "bg-musgo text-white", soft: "bg-musgo-soft", text: "text-musgo" },
+  "quero-ler": { icon: Bookmark, active: "bg-anil text-on-brand", soft: "bg-anil-soft", text: "text-anil" },
+  lendo: { icon: BookOpen, active: "bg-ameixa text-on-brand", soft: "bg-ameixa-soft", text: "text-ameixa" },
+  lido: { icon: Check, active: "bg-musgo text-on-brand", soft: "bg-musgo-soft", text: "text-musgo" },
 };
 
 const TOAST: Record<Status, string> = {
@@ -53,7 +53,7 @@ export function BookActions({ book }: { book: Book }) {
               onClick={() => setStatus(s)}
               className={cn(
                 "relative flex h-16 flex-col items-center justify-center gap-1 rounded-xl text-[0.8125rem] font-medium transition-colors duration-200 active:scale-[0.97]",
-                active ? "text-white" : "bg-sunken text-ink-2 hover:bg-line",
+                active ? "text-on-brand" : "bg-sunken text-ink-2 hover:bg-line",
               )}
             >
               {active && (

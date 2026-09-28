@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Modo escuro por classe no <html> (next-themes). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================================
    Estante, design tokens. Fonte de verdade: DESIGN.md.
    Base neutra no estilo Apple (off-white, cinzas quentes, tipografia
@@ -30,11 +33,15 @@
   --anil-soft: #eeedfc;
   --ameixa: #8e2c80;
   --ameixa-soft: #f6ebf4;
-  --musgo: #2e7d4f;
+  --musgo: #2b784c;
   --musgo-soft: #e8f3ec;
   --ambar: #f5a524;
   --ambar-ink: #9a5b00;
   --ambar-soft: #fef3df;
+
+  /* Texto sobre preenchimentos: branco no claro, quase preto no escuro. */
+  --on-brand: #ffffff;
+  --on-ink: #ffffff;
 
   --radius: 0.75rem;
 
@@ -51,7 +58,7 @@
   --popover: var(--surface);
   --popover-foreground: var(--ink);
   --primary: var(--anil);
-  --primary-foreground: #ffffff;
+  --primary-foreground: var(--on-brand);
   --secondary: var(--sunken);
   --secondary-foreground: var(--ink);
   --muted: var(--sunken);
@@ -62,6 +69,48 @@
   --border: var(--line);
   --input: var(--line-strong);
   --ring: var(--anil);
+}
+
+/* ============================================================
+   Modo escuro. Fundo quase preto para as capas brilharem, como
+   numa prateleira à noite. As cores da marca ficam mais claras
+   para continuar legíveis como texto; em preenchimentos, o texto
+   por cima passa a ser escuro (--on-brand). Contraste validado:
+   todo texto de conteúdo passa de 4,5:1.
+   ============================================================ */
+.dark {
+  color-scheme: dark;
+
+  --canvas: #0b0b0d;
+  --surface: #18181b;
+  --sunken: #232326;
+  --ink: #f5f5f7;
+  --ink-2: #d2d2d7;
+  --ink-3: #9d9da4;
+  --ink-4: #86868d;
+  --line: #2c2c30;
+  --line-strong: #3d3d42;
+
+  --anil: #8f89ff;
+  --anil-hover: #a9a4ff;
+  --anil-soft: #1f1d45;
+  --ameixa: #e27ed4;
+  --ameixa-soft: #35172f;
+  --musgo: #5cc88a;
+  --musgo-soft: #13301f;
+  --ambar: #f5a524;
+  --ambar-ink: #f7b955;
+  --ambar-soft: #33250b;
+
+  --on-brand: #0b0b0d;
+  --on-ink: #0b0b0d;
+
+  /* No escuro a sombra precisa ser mais forte para a capa descolar do fundo. */
+  --shadow-cover: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 20px -6px rgb(0 0 0 / 0.7);
+  --shadow-cover-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 32px -8px rgb(0 0 0 / 0.8);
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.6);
+
+  --destructive: #ff6961;
 }
 
 @theme inline {
@@ -104,6 +153,8 @@
   --color-ambar: var(--ambar);
   --color-ambar-ink: var(--ambar-ink);
   --color-ambar-soft: var(--ambar-soft);
+  --color-on-brand: var(--on-brand);
+  --color-on-ink: var(--on-ink);
 
   --shadow-cover: var(--shadow-cover);
   --shadow-cover-hover: var(--shadow-cover-hover);

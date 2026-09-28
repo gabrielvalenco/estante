@@ -12,6 +12,7 @@ escreva reviews curtas e descubra livros pelas listas de outros leitores.
 - **Montar sua estante** sem cadastro, e entrar com link mágico para sincronizar e ganhar um perfil público.
 - **Página de cada livro tingida com a cor da capa**, com média, distribuição das notas e reviews.
 - **Perfis** com os 4 favoritos, meta de leitura do ano e diário mês a mês.
+- **Modo escuro** que segue o sistema, com seletor no rodapé.
 - **Listas** curadas e página de explorar com filtro por gênero e ordenação.
 
 ## Três cores, uma estante
@@ -124,4 +125,3 @@ supabase/migrations/     schema, trigger de perfil e políticas de RLS
 
 - Seguir leitores e feed de amigos
 - Retrospectiva do ano com gráficos
-- Modo escuro

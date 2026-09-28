@@ -171,7 +171,7 @@ function Form({ profile, email }: { profile: Profile; email: string | null }) {
                 <label key={t.value} className="relative cursor-pointer">
                   <input type="radio" name="tone" value={t.value} checked={draft.tone === t.value} onChange={() => set("tone", t.value)} className="peer sr-only" />
                   <span className={cn("flex size-9 items-center justify-center rounded-full ring-offset-2 transition peer-checked:ring-2 peer-checked:ring-ink peer-focus-visible:ring-2 peer-focus-visible:ring-anil", t.className)}>
-                    {draft.tone === t.value && <Check className="size-4 text-white" aria-hidden />}
+                    {draft.tone === t.value && <Check className="size-4 text-on-brand" aria-hidden />}
                   </span>
                   <span className="sr-only">{t.label}</span>
                 </label>
@@ -199,7 +199,7 @@ function Form({ profile, email }: { profile: Profile; email: string | null }) {
                     >
                       <BookCover book={e.book} size="M" />
                       {i >= 0 && (
-                        <span className="tnum absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-anil text-xs font-semibold text-white">
+                        <span className="tnum absolute -top-2 -right-2 flex size-6 items-center justify-center rounded-full bg-anil text-xs font-semibold text-on-brand">
                           {i + 1}
                         </span>
                       )}

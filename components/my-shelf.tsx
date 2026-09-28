@@ -90,7 +90,7 @@ export function MyShelf() {
               onClick={() => setFilter(f)}
               className={cn(
                 "inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-[0.8125rem] font-medium whitespace-nowrap transition-colors",
-                active ? (style?.active ?? "bg-ink text-white") : "bg-sunken text-ink-2 hover:bg-line",
+                active ? (style?.active ?? "bg-ink text-on-ink") : "bg-sunken text-ink-2 hover:bg-line",
               )}
             >
               {f === "todos" ? "Todos" : f === "curtidos" ? "Curtidos" : STATUS_LABEL[f]}

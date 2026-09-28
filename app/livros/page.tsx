@@ -103,7 +103,7 @@ function GenreChip({ href, active, children }: { href: string; active: boolean; 
       aria-current={active ? "true" : undefined}
       className={cn(
         "shrink-0 rounded-full px-3.5 py-2 text-[0.8125rem] font-medium whitespace-nowrap transition-colors",
-        active ? "bg-ink text-white" : "bg-sunken text-ink-2 hover:bg-line",
+        active ? "bg-ink text-on-ink" : "bg-sunken text-ink-2 hover:bg-line",
       )}
     >
       {children}

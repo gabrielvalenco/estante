@@ -4,6 +4,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 import { AuthSync } from "@/components/auth-sync";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SITE } from "@/lib/site";
@@ -20,21 +21,26 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fbfbfd",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbfbfd" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${inter.variable} ${geistMono.variable}`}>
+    <html lang="pt-BR" className={`${inter.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body>
-        <TooltipProvider>
-          <SiteHeader />
-          <main className="relative isolate min-h-[calc(100dvh-3.5rem)]">{children}</main>
-          <SiteFooter />
-        </TooltipProvider>
-        <Toaster position="bottom-center" />
-        <AuthSync />
+        <ThemeProvider>
+          <TooltipProvider>
+            <SiteHeader />
+            <main className="relative isolate min-h-[calc(100dvh-3.5rem)]">{children}</main>
+            <SiteFooter />
+          </TooltipProvider>
+          <Toaster position="bottom-center" />
+          <AuthSync />
+        </ThemeProvider>
       </body>
     </html>
   );

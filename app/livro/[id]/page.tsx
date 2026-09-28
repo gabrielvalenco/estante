@@ -67,7 +67,7 @@ export default async function BookPage({ params }: Props) {
             {book.genres.length > 0 && (
               <ul className="mb-3 flex flex-wrap gap-1.5">
                 {book.genres.map((g) => (
-                  <li key={g} className="rounded-full bg-surface/70 px-2.5 py-1 text-xs font-medium text-ink-2 ring-1 ring-black/5">
+                  <li key={g} className="rounded-full bg-surface/70 px-2.5 py-1 text-xs font-medium text-ink-2 ring-1 ring-ink/5">
                     {g}
                   </li>
                 ))}
@@ -151,7 +151,7 @@ export default async function BookPage({ params }: Props) {
 
 function Stat({ icon: Icon, label, value, className }: { icon: typeof Users; label: string; value: string; className?: string }) {
   return (
-    <div className="rounded-xl bg-surface/70 px-3 py-2.5 ring-1 ring-black/5">
+    <div className="rounded-xl bg-surface/70 px-3 py-2.5 ring-1 ring-ink/5">
       <dt className="flex items-center gap-1.5 text-xs text-ink-3">
         <Icon className={`size-3.5 ${className}`} aria-hidden />
         {label}

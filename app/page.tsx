@@ -144,17 +144,17 @@ export default async function Home() {
 
       {/* Chamada final */}
       <section className="container-page mt-24">
-        <div className="relative overflow-hidden rounded-[2rem] bg-anil px-6 py-14 text-center text-white sm:px-12 sm:py-20">
+        <div className="relative overflow-hidden rounded-[2rem] bg-anil px-6 py-14 text-center text-on-brand dark:bg-anil-soft dark:text-ink sm:px-12 sm:py-20">
           <DecorLayers />
           <h2 className="relative text-title font-semibold">Sua estante começa com um livro.</h2>
-          <p className="relative mx-auto mt-3 max-w-md text-[1.0625rem] text-white/80">
+          <p className="relative mx-auto mt-3 max-w-md text-[1.0625rem] text-on-brand/80 dark:text-ink-2">
             Sem cadastro nesta demonstração. O que você marcar fica salvo neste navegador.
           </p>
           <Button
             size="lg"
             render={<Link href="/livros" />}
             nativeButton={false}
-            className="relative mt-8 bg-white text-anil hover:bg-white/90"
+            className="relative mt-8 bg-on-brand text-anil hover:bg-on-brand/90 dark:bg-anil dark:text-on-brand dark:hover:bg-anil-hover"
           >
             Escolher meu primeiro livro
           </Button>

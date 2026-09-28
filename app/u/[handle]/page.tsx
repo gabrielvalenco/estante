@@ -77,7 +77,7 @@ export default async function ProfilePage({ params }: Props) {
           </p>
         </div>
         <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-white/70"
+          className="mt-3 h-2 overflow-hidden rounded-full bg-surface/70"
           role="progressbar"
           aria-valuenow={Math.round(progress * 100)}
           aria-valuemin={0}

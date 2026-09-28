@@ -38,7 +38,7 @@ Letterboxd (densidade das reviews, top 4 no perfil), Apple Music (página tingid
 |---|---|---|
 | `--anil` | `#3A2FD6` | **Quero ler**, e a cor de ação (botão primário, links) |
 | `--ameixa` | `#8E2C80` | **Lendo**, e curtidas (coração) |
-| `--musgo` | `#2E7D4F` | **Lido**, e metas cumpridas |
+| `--musgo` | `#2B784C` | **Lido**, e metas cumpridas |
 | `--ambar` | `#F5A524` | **Avaliação** (estrelas, histograma) e o marcador do logo |
 
 Cada cor tem um `-soft` para fundos grandes (cards de status, meta de leitura, avatar).
@@ -50,6 +50,19 @@ Neutros no estilo Apple: `--canvas #FBFBFD` (página), `--surface #FFF` (cards),
 agrupa os pixels por matiz e escolhe o grupo mais saturado). Ela tinge o topo da página
 do livro e o espaço da capa enquanto a imagem carrega. Capas preto e branco recebem
 cor manual em `lib/data/curation.ts`.
+
+### 3.1 Modo escuro
+
+Segue o sistema por padrão, com seletor (automático, claro, escuro) no rodapé. Fundo quase preto
+(`#0B0B0D`), para as capas brilharem como numa prateleira à noite.
+
+- As cores da marca ficam **mais claras** no escuro (anil `#8F89FF`, ameixa `#E27ED4`, musgo `#5CC88A`),
+  para continuarem legíveis como texto.
+- Em preenchimentos (botão primário, status ativo), o texto por cima usa `--on-brand`: branco no claro,
+  quase preto no escuro. Sobre `bg-ink`, use `--on-ink`. **Nunca `text-white` sobre uma cor de token.**
+- Sombras mais fortes no escuro, senão a capa não descola do fundo.
+- Todo par de texto e fundo foi validado em 4,5:1 nos dois modos. A validação pegou o musgo do modo claro
+  sobre `--musgo-soft` (4,44:1), que foi escurecido para `#2B784C`.
 
 ## 4. Tipografia
 
@@ -85,6 +98,9 @@ Corpo em 15 a 17px. Números com `.tnum`.
 Base: shadcn/ui (Base UI) com os tokens acima mapeados nas variáveis do shadcn em `globals.css`.
 
 ## 7. Decisões
+
+- **Modo escuro com next-themes**, por classe no `<html>`. O seletor só marca a opção ativa depois da
+  hidratação, porque o tema salvo só existe no navegador.
 
 - **`cn` com tokens registrados.** O merge de classes descartava `text-hero` achando que era
   cor. Tamanhos e sombras novos precisam entrar em `lib/utils.ts`.

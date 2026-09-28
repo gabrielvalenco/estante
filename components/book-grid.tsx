@@ -24,7 +24,7 @@ export function BookGrid({
           <div className="relative">
             <BookCover book={book} href={`/livro/${book.id}`} priority={i < 6} />
             {rank && (
-              <span className="tnum absolute -top-2 -left-2 z-10 flex size-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white shadow-card">
+              <span className="tnum absolute -top-2 -left-2 z-10 flex size-7 items-center justify-center rounded-full bg-ink text-xs font-semibold text-on-ink shadow-card">
                 {i + 1}
               </span>
             )}
