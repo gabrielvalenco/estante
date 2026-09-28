@@ -94,6 +94,29 @@ export const entries = pgTable(
   ],
 );
 
+/**
+ * Login por e-mail e senha. Fica fora de `profiles` de propósito: perfis são públicos,
+ * e o hash da senha nunca pode sair numa consulta de perfil.
+ */
+export const passwordLogins = pgTable(
+  "password_logins",
+  {
+    email: text("email").primaryKey(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .unique()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    passwordHash: text("password_hash").notNull(),
+    /** Tentativas erradas seguidas; zera ao acertar. */
+    failedAttempts: integer("failed_attempts").notNull().default(0),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("password_logins_email", sql`${t.email} = lower(${t.email}) and char_length(${t.email}) <= 254 and ${t.email} ~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'`),
+  ],
+);
+
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;
 export type EntryInsert = typeof entries.$inferInsert;

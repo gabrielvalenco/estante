@@ -9,7 +9,7 @@ escreva reviews curtas e descubra livros pelas listas de outros leitores.
 ## O que dá para fazer
 
 - **Buscar qualquer livro** em mais de 20 milhões de títulos da Open Library.
-- **Montar sua estante** sem cadastro, e entrar com o GitHub para sincronizar e ganhar um perfil público.
+- **Montar sua estante** sem cadastro, e criar conta (Google, GitHub ou e-mail e senha) para sincronizar e ganhar um perfil público.
 - **Página de cada livro tingida com a cor da capa**, com média, distribuição das notas e reviews.
 - **Perfis** com os 4 favoritos, meta de leitura do ano e diário mês a mês.
 - **Modo escuro** que segue o sistema, com seletor no rodapé.
@@ -36,7 +36,7 @@ O sistema completo está em [DESIGN.md](DESIGN.md).
 - [shadcn/ui](https://ui.shadcn.com) sobre Base UI
 - [Motion](https://motion.dev) para as microinterações
 - [Neon](https://neon.tech) (Postgres) com [Drizzle ORM](https://orm.drizzle.team)
-- [Auth.js](https://authjs.dev) para login com GitHub
+- [Auth.js](https://authjs.dev) para login com Google, GitHub e e-mail e senha
 - [zod](https://zod.dev) para validar tudo o que chega nas server actions
 - [Open Library API](https://openlibrary.org/developers/api) para busca, obras e capas
 
@@ -67,7 +67,13 @@ e `npm run db:migrate`; `npm run db:studio` abre o Drizzle Studio.
 
 ## Contas e banco
 
-- **Login com GitHub** pelo [Auth.js](https://authjs.dev), com sessão em JWT (sem tabelas de sessão).
+- **Três formas de entrar** pelo [Auth.js](https://authjs.dev), com sessão em JWT: Google, GitHub e e-mail e senha.
+- **Senhas com cuidado:** hash `scrypt` com salt, numa tabela separada dos perfis (que são públicos); bloqueio de
+  15 minutos depois de 5 tentativas erradas; e a mesma mensagem e o mesmo tempo de resposta para "e-mail não
+  cadastrado" e "senha errada", para ninguém descobrir quem tem conta. Sem domínio próprio não há envio de e-mail,
+  então ainda não existe "esqueci minha senha".
+- **Nada interno em página pública:** as consultas públicas listam as colunas uma a uma; o `provider_id` e o
+  e-mail nunca saem do servidor.
 - **A estante migra sozinha:** o que o visitante marcou no navegador vai para a conta no primeiro login.
 - **Salvar é otimista:** a tela muda na hora e volta atrás com um aviso se o servidor recusar.
 - **Perfis públicos** em `/u/@`, com favoritos escolhidos, meta anual, diário e reviews.
@@ -89,8 +95,12 @@ e `npm run db:migrate`; `npm run db:studio` abre o Drizzle Studio.
    ```
 3. Crie um **GitHub OAuth App** em [github.com/settings/developers](https://github.com/settings/developers)
    com a callback `https://SEU-APP.vercel.app/api/auth/callback/github`.
-4. Adicione na Vercel: `AUTH_SECRET` (gere com `npx auth secret`), `AUTH_GITHUB_ID` e `AUTH_GITHUB_SECRET`.
-5. Faça um novo deploy.
+4. Opcional, para o Google: crie um OAuth Client (tipo *Aplicativo da Web*) em
+   [console.cloud.google.com](https://console.cloud.google.com/apis/credentials) com a URI de redirecionamento
+   `https://SEU-APP.vercel.app/api/auth/callback/google`.
+5. Adicione na Vercel: `AUTH_SECRET` (gere com `npx auth secret`), `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET` e,
+   se configurou o Google, `AUTH_GOOGLE_ID` e `AUTH_GOOGLE_SECRET`. E-mail e senha não precisam de nada.
+6. Faça um novo deploy.
 
 Sem essas variáveis, o deploy funciona do mesmo jeito, em modo demonstração.
 

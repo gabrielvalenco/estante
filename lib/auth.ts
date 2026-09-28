@@ -41,7 +41,7 @@ export function updateProfile(profile: Profile) {
 }
 
 // O que está ligado neste ambiente (contas, GitHub, login de teste), vindo do servidor.
-export const AuthFlagsContext = createContext<AuthFlags>({ accounts: false, github: false, devLogin: false });
+export const AuthFlagsContext = createContext<AuthFlags>({ accounts: false, github: false, google: false, password: false, devLogin: false });
 
 export function useAuthFlags() {
   return useContext(AuthFlagsContext);

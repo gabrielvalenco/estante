@@ -7,6 +7,23 @@ import { entries, profiles, type EntryRow, type ProfileRow } from "@/lib/db/sche
 import { fromRow, type ReviewView } from "@/lib/reviews";
 
 /**
+ * Colunas de perfil que podem sair em página pública. Nunca `select()` sem lista em profiles:
+ * `provider_id` identifica a conta no provedor de login e não é público.
+ */
+const PUBLIC_PROFILE = {
+  id: profiles.id,
+  handle: profiles.handle,
+  name: profiles.name,
+  bio: profiles.bio,
+  tone: profiles.tone,
+  goal: profiles.goal,
+  favorites: profiles.favorites,
+  createdAt: profiles.createdAt,
+} as const;
+
+export type PublicProfileRow = Omit<ProfileRow, "providerId">;
+
+/**
  * Leituras públicas do banco. Não dependem de cookies, então as páginas continuam
  * em cache (ISR). Em modo demonstração, ou se o banco falhar, devolvem vazio e
  * a página segue de pé com os dados de exemplo.
@@ -50,12 +67,12 @@ export function bookReviews(bookId: string): Promise<ReviewView[]> {
   });
 }
 
-export type PublicProfile = ProfileRow & { entries: EntryRow[] };
+export type PublicProfile = PublicProfileRow & { entries: EntryRow[] };
 
 export function profileByHandle(handle: string): Promise<PublicProfile | null> {
   if (!/^[a-z0-9_]{3,20}$/.test(handle)) return Promise.resolve(null);
   return safe(null, async () => {
-    const profile = await db!.query.profiles.findFirst({ where: eq(profiles.handle, handle) });
+    const [profile] = await db!.select(PUBLIC_PROFILE).from(profiles).where(eq(profiles.handle, handle)).limit(1);
     if (!profile) return null;
     const shelf = await db!.query.entries.findMany({
       where: eq(entries.userId, profile.id),
@@ -70,7 +87,7 @@ export function profileByHandle(handle: string): Promise<PublicProfile | null> {
 export function recentReaders(limit = 6) {
   return safe([], async () => {
     const people = await db!
-      .select()
+      .select(PUBLIC_PROFILE)
       .from(profiles)
       .where(exists(db!.select({ one: sql`1` }).from(entries).where(eq(entries.userId, profiles.id))))
       .orderBy(desc(profiles.createdAt))
