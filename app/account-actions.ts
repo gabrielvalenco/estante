@@ -5,8 +5,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { AVATAR_MAX_BYTES, deleteAvatar, optimizeAvatar, storeAvatar } from "@/lib/avatars";
+import { stripe } from "@/lib/billing";
 import { db } from "@/lib/db";
-import { entries, followRequests, follows, passwordLogins, profiles } from "@/lib/db/schema";
+import { entries, followRequests, follows, passwordLogins, profiles, subscriptions } from "@/lib/db/schema";
 import { toProfile, type Profile } from "@/lib/db/types";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { currentProfileId } from "@/lib/session";
@@ -220,6 +221,18 @@ export async function deleteAccountAction(confirmHandle: string): Promise<{ ok: 
   if (!me || !db) return { ok: false };
   const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { handle: true, avatarUrl: true } });
   if (!profile || confirmHandle.trim().replace(/^@/, "") !== profile.handle) return { ok: false };
+
+  // Assinatura paga: cancela no Stripe antes de apagar, senão continuaria cobrando.
+  const sub = await db.query.subscriptions.findFirst({ where: eq(subscriptions.profileId, me) });
+  if (sub?.stripeSubscriptionId && !["canceled", "incomplete_expired"].includes(sub.status)) {
+    const s = stripe();
+    if (!s) return { ok: false };
+    try {
+      await s.subscriptions.cancel(sub.stripeSubscriptionId);
+    } catch {
+      return { ok: false };
+    }
+  }
 
   const books = await db.select({ id: entries.bookId }).from(entries).where(eq(entries.userId, me)).limit(500);
   await db.delete(profiles).where(and(eq(profiles.id, me), eq(profiles.handle, profile.handle)));

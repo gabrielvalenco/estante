@@ -31,8 +31,8 @@ const inputClass =
   "h-11 w-full rounded-xl border border-line bg-surface px-3 text-base text-ink outline-none placeholder:text-ink-4 focus:border-line-strong focus:shadow-[0_0_0_4px_var(--anil-soft)] aria-invalid:border-destructive";
 
 export const LIMIT_MESSAGE: Record<"limit_quotes" | "limit_notes", (planName: string, limit: number | null) => string> = {
-  limit_quotes: (plan, n) => `O plano ${plan} guarda até ${n} citações. O Capa Dura, que chega em breve, libera citações ilimitadas.`,
-  limit_notes: (plan, n) => `O plano ${plan} guarda até ${n} notas por livro. O Capa Dura, que chega em breve, libera notas ilimitadas.`,
+  limit_quotes: (plan, n) => `O plano ${plan} guarda até ${n} citações. No Capa Dura, as citações são ilimitadas.`,
+  limit_notes: (plan, n) => `O plano ${plan} guarda até ${n} notas por livro. No Capa Dura, as notas são ilimitadas.`,
 };
 
 /** "Sua leitura" na página do livro: marcador de página, citações e notas. Só para quem tem conta. */
@@ -422,7 +422,19 @@ export function AnnotationDialog({
                 className={cn(inputClass, "tnum h-10 w-28")}
               />
             </label>
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <p className="text-sm text-destructive">
+                {error}
+                {error.includes("Capa Dura") && (
+                  <>
+                    {" "}
+                    <Link href="/planos" className="font-medium text-anil hover:underline">
+                      Conhecer o Capa Dura
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             <p className="text-xs text-ink-4">Só você vê suas anotações.</p>
           </div>
           <div className="flex justify-end gap-2 border-t border-line p-4">

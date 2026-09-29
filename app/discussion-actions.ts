@@ -6,7 +6,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { blocks, discussionPosts, discussionReports, discussionThreads, entries, profiles, readingProgress } from "@/lib/db/schema";
 import { notify } from "@/lib/db/social";
-import { limitValue, PLANS, planOf } from "@/lib/plans";
+import { planOf } from "@/lib/billing";
+import { limitValue, PLANS } from "@/lib/plans";
 import { currentProfileId } from "@/lib/session";
 
 /**

@@ -117,6 +117,10 @@ export default function PrivacyPage() {
               <p>Não vendemos nem alugamos dados. Usamos operadores que tratam dados em nosso nome, só para o serviço funcionar:</p>
               <List>
                 <li>Vercel (hospedagem do site, registros de acesso e armazenamento das fotos de perfil).</li>
+                <li>
+                  Stripe, se você assinar o Capa Dura: processa o pagamento e guarda os dados do cartão e o e-mail da cobrança. Aqui ficam só o
+                  identificador de cliente no Stripe, o plano, a situação e as datas da assinatura.
+                </li>
                 <li>Neon (banco de dados).</li>
                 <li>Google e GitHub, somente se você escolher entrar por eles.</li>
                 <li>Open Library, que recebe os termos que você busca (sem qualquer dado da sua conta).</li>

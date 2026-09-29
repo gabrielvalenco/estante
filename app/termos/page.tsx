@@ -25,7 +25,7 @@ export default function TermsPage() {
           title: "O serviço",
           body: (
             <p>
-              A {SITE.name} é um diário de leitura social, gratuito e mantido como projeto independente. Informações de livros e capas vêm da Open
+              A {SITE.name} é um diário de leitura social mantido como projeto independente, com um plano gratuito (Brochura) e um plano pago opcional (Capa Dura). Informações de livros e capas vêm da Open
               Library. Os leitores marcados como &ldquo;de demonstração&rdquo; são fictícios. O serviço é oferecido como está e pode mudar ou sair do ar.
             </p>
           ),
@@ -68,6 +68,31 @@ export default function TermsPage() {
               Você pode tornar seu perfil privado, recusar pedidos para seguir e bloquear qualquer pessoa. Quem é bloqueado deixa de seguir você e não
               consegue mais interagir com seu perfil nem com suas reviews.
             </p>
+          ),
+        },
+        {
+          id: "planos",
+          title: "Planos e pagamento",
+          body: (
+            <>
+              <p>
+                O plano Brochura é gratuito. O Capa Dura é uma assinatura mensal ou anual que amplia os limites de citações, notas e discussões; os
+                preços e o que cada plano inclui ficam na página de Planos. O pagamento é feito com cartão pelo Stripe, que processa os dados do
+                cartão: a {SITE.name} não os vê nem os guarda.
+              </p>
+              <p>
+                A assinatura renova sozinha no fim de cada período, pelo mesmo valor, até você cancelar. Você cancela quando quiser em Gerenciar
+                assinatura, e o plano continua valendo até o fim do período já pago, sem cobrança nova.
+              </p>
+              <p>
+                Direito de arrependimento: em até 7 dias da contratação, você pode desistir e recebe o valor pago de volta, pelo mesmo meio de
+                pagamento (Código de Defesa do Consumidor, art. 49). Para isso, fale conosco pelo contato abaixo.
+              </p>
+              <p>
+                Se o plano mudar de preço, avisamos antes da próxima renovação. Se uma cobrança falhar, o Stripe tenta de novo por alguns dias; sem
+                pagamento, a conta volta ao Brochura, e suas anotações continuam salvas.
+              </p>
+            </>
           ),
         },
         {

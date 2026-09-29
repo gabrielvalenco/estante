@@ -390,6 +390,38 @@ export const discussionReports = pgTable(
 export type DiscussionThreadRow = typeof discussionThreads.$inferSelect;
 export type DiscussionPostRow = typeof discussionPosts.$inferSelect;
 
+export const SUBSCRIPTION_PLANS = ["capa-dura", "ex-libris"] as const;
+
+/**
+ * Assinatura paga (Stripe). Uma por perfil. Quem manda é o Stripe: esta tabela é uma cópia,
+ * atualizada pelo webhook e na volta do checkout. Sem linha (ou status inativo) = plano Brochura.
+ * Nunca guarda dados do cartão.
+ */
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    profileId: uuid("profile_id")
+      .primaryKey()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+    stripeSubscriptionId: text("stripe_subscription_id").unique(),
+    plan: text("plan", { enum: SUBSCRIPTION_PLANS }).notNull().default("capa-dura"),
+    /** Status do Stripe: active, trialing, past_due, canceled, unpaid, incomplete... */
+    status: text("status").notNull().default("incomplete"),
+    interval: text("interval", { enum: ["month", "year"] }),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    /** A pessoa cancelou: o plano vale até esta data e não renova. */
+    cancelAt: timestamp("cancel_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("subscriptions_plan", sql`${t.plan} in ('capa-dura', 'ex-libris')`),
+    check("subscriptions_customer", sql`${t.stripeCustomerId} ~ '^cus_'`),
+  ],
+);
+
+export type SubscriptionRow = typeof subscriptions.$inferSelect;
+
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;
 export type EntryInsert = typeof entries.$inferInsert;

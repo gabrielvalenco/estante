@@ -13,6 +13,9 @@ export function SiteFooter() {
           <span>{SITE.name}. Os leitores de demonstração são fictícios.</span>
         </div>
         <nav aria-label="Rodapé" className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <Link href="/planos" className="text-ink-2 underline-offset-4 hover:underline">
+            Planos
+          </Link>
           <Link href="/privacidade" className="text-ink-2 underline-offset-4 hover:underline">
             Privacidade
           </Link>

@@ -3,11 +3,19 @@ import type { NextRequest } from "next/server";
 import { getMyAccount, updateProfileAction } from "@/app/actions";
 import { setPrivacyAction } from "@/app/account-actions";
 import { appUser, fail, failWith, ok, readJson } from "@/lib/api";
+import { planStatusOf } from "@/lib/billing";
 
-/** A conta de quem está logado no app: perfil, estante, quem segue, bloqueios. */
+/** A conta com o plano (assinar e gerenciar é pelo site). */
+async function accountWithPlan(me: string) {
+  const [account, plan] = await Promise.all([getMyAccount(), planStatusOf(me)]);
+  return account ? { ...account, plan } : null;
+}
+
+/** A conta de quem está logado no app: perfil, estante, quem segue, bloqueios e o plano. */
 export async function GET(req: NextRequest) {
-  if (!(await appUser(req))) return fail("unauthenticated", 401);
-  const account = await getMyAccount();
+  const me = await appUser(req);
+  if (!me) return fail("unauthenticated", 401);
+  const account = await accountWithPlan(me);
   return account ? ok(account) : fail("unauthenticated", 401);
 }
 
@@ -16,7 +24,8 @@ export async function GET(req: NextRequest) {
  * (name, handle, bio, goal, tone, favorites) e, separado, isPrivate.
  */
 export async function PATCH(req: NextRequest) {
-  if (!(await appUser(req))) return fail("unauthenticated", 401);
+  const me = await appUser(req);
+  if (!me) return fail("unauthenticated", 401);
   const body = (await readJson(req)) as Record<string, unknown> | null;
   if (!body || typeof body !== "object") return fail("invalid", 400);
 
@@ -29,5 +38,5 @@ export async function PATCH(req: NextRequest) {
     const r = await updateProfileAction(draft as Parameters<typeof updateProfileAction>[0]);
     if (!r.ok) return failWith(r.error);
   }
-  return ok(await getMyAccount());
+  return ok(await accountWithPlan(me));
 }

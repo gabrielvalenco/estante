@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 import { updateProfileAction } from "@/app/actions";
 import { AvatarEditor } from "@/components/avatar-editor";
-import { BlockedSection, DataSection, PasswordSection, PrivacySection, SocialsSection } from "@/components/account-sections";
+import { BlockedSection, DataSection, PasswordSection, PlanSection, PrivacySection, SocialsSection } from "@/components/account-sections";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +46,7 @@ export function AccountForm() {
   return (
     <>
       <Form key={auth.profile.id} profile={auth.profile} />
+      <PlanSection />
       <PrivacySection profile={auth.profile} />
       <SocialsSection profile={auth.profile} />
       {auth.hasPassword && <PasswordSection />}

@@ -1,7 +1,7 @@
 /**
- * Planos da Estante. Por enquanto todo mundo está no Brochura (grátis); Capa Dura e Ex Libris
- * entram quando houver cobrança. Os limites ficam só aqui, e quem os aplica é o servidor
- * (app/reading-actions.ts), nunca a tela.
+ * Planos da Estante: Brochura (grátis), Capa Dura (assinatura) e Ex Libris (em breve).
+ * Os limites ficam só aqui, e quem os aplica é o servidor, nunca a tela.
+ * O plano de cada pessoa vem de lib/billing.ts (planOf).
  */
 
 export type PlanId = "brochura" | "capa-dura" | "ex-libris";
@@ -21,11 +21,6 @@ export const PLANS: Record<PlanId, { name: string; limits: Limits }> = {
   "ex-libris": { name: "Ex Libris", limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity } },
 };
 
-/** Plano de um perfil. Sem assinaturas ainda: sempre Brochura. */
-export async function planOf(profileId: string): Promise<PlanId> {
-  void profileId; // vai consultar a tabela de assinaturas
-  return "brochura";
-}
 
 /** Limite para o JSON (Infinity vira null: "sem limite"). */
 export const limitValue = (n: number) => (Number.isFinite(n) ? n : null);

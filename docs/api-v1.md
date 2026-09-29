@@ -27,7 +27,7 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 |---|---|---|---|
 | POST | `/auth/signup` | não | `{ name, email, password }` (senha ≥ 8) → 201 `{ token, account }` |
 | POST | `/auth/login` | não | `{ email, password }` → `{ token, account }`. 5 erros seguidos bloqueiam 15 min |
-| GET | `/me` | sim | Conta: `profile`, `shelf`, `following`, `requested`, `blocked`, `hasPassword` |
+| GET | `/me` | sim | Conta: `profile`, `shelf`, `following`, `requested`, `blocked`, `hasPassword`, `plan` (`{ plan, status, interval, periodEnd, canceling }`) |
 | PATCH | `/me` | sim | `{ name, handle, bio, goal, tone, favorites }` e/ou `{ isPrivate }` → conta atualizada |
 | POST | `/me/avatar` | sim | multipart, campo `file` (recorte quadrado; o servidor gera 256px WebP) → `{ profile }` |
 | DELETE | `/me/avatar` | sim | Remove a foto → `{ profile }` |

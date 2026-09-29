@@ -2,7 +2,7 @@ import { eq, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { annotations, blocks, entries, followRequests, follows, notifications, passwordLogins, profiles, readingProgress, reviewReactions } from "@/lib/db/schema";
+import { annotations, blocks, entries, followRequests, follows, notifications, passwordLogins, profiles, readingProgress, reviewReactions, subscriptions } from "@/lib/db/schema";
 import { currentProfileId } from "@/lib/session";
 
 /**
@@ -16,7 +16,7 @@ export async function GET() {
   const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, me) });
   if (!profile) return NextResponse.json({ error: "Conta não encontrada." }, { status: 404 });
 
-  const [shelf, following, followers, requests, blocked, reactions, notes, login, progress, annotated] = await Promise.all([
+  const [shelf, following, followers, requests, blocked, reactions, notes, login, progress, annotated, subscription] = await Promise.all([
     db.select().from(entries).where(eq(entries.userId, me)),
     db.select({ handle: profiles.handle, since: follows.createdAt }).from(follows).innerJoin(profiles, eq(follows.followingId, profiles.id)).where(eq(follows.followerId, me)),
     db.select({ handle: profiles.handle, since: follows.createdAt }).from(follows).innerJoin(profiles, eq(follows.followerId, profiles.id)).where(eq(follows.followingId, me)),
@@ -27,6 +27,7 @@ export async function GET() {
     db.select({ email: passwordLogins.email, createdAt: passwordLogins.createdAt }).from(passwordLogins).where(eq(passwordLogins.profileId, me)),
     db.select().from(readingProgress).where(eq(readingProgress.userId, me)),
     db.select().from(annotations).where(eq(annotations.userId, me)),
+    db.select({ plan: subscriptions.plan, status: subscriptions.status, interval: subscriptions.interval, currentPeriodEnd: subscriptions.currentPeriodEnd, cancelAt: subscriptions.cancelAt }).from(subscriptions).where(eq(subscriptions.profileId, me)),
   ]);
 
   const data = {
@@ -54,6 +55,7 @@ export async function GET() {
     notifications: notes,
     bookmarks: progress,
     annotations: annotated,
+    subscription: subscription[0] ?? null,
   };
 
   return new NextResponse(JSON.stringify(data, null, 2), {

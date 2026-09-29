@@ -1,6 +1,6 @@
 "use client";
 
-import { Library, LogOut, Moon, NotebookPen, Settings, Sun, UserRound, Users } from "lucide-react";
+import { Gem, Library, LogOut, Moon, NotebookPen, Settings, Sun, UserRound, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -77,6 +77,9 @@ export function AccountMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/conta")}>
           <Settings /> Configurações
+        </DropdownMenuItem>
+        <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/planos")}>
+          <Gem /> Planos
         </DropdownMenuItem>
         {/* No celular o botão de tema sai do header e vem para cá. */}
         <DropdownMenuItem className="rounded-lg px-2.5 py-2 md:hidden" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>

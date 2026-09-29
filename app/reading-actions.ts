@@ -5,7 +5,8 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { annotations, readingProgress, type AnnotationRow } from "@/lib/db/schema";
-import { limitValue, PLANS, planOf, type PlanId } from "@/lib/plans";
+import { planOf } from "@/lib/billing";
+import { limitValue, PLANS, type PlanId } from "@/lib/plans";
 import { currentProfileId } from "@/lib/session";
 
 /**

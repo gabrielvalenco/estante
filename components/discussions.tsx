@@ -230,7 +230,7 @@ function NewThreadDialog({
     setSaving(false);
     if (!r.ok) {
       if (r.error === "limit_threads" && "usage" in r && r.usage) {
-        return setError(`O plano ${r.usage.planName} abre até ${r.usage.threadsPerMonthLimit} discussões por mês. Responder continua livre, e o Capa Dura, que chega em breve, libera discussões ilimitadas.`);
+        return setError(`O plano ${r.usage.planName} abre até ${r.usage.threadsPerMonthLimit} discussões por mês. Responder continua livre, e no Capa Dura as discussões são ilimitadas.`);
       }
       return setError(ERRORS[r.error]);
     }
@@ -258,7 +258,19 @@ function NewThreadDialog({
               <Textarea value={body} onChange={(e) => setBody(e.target.value.slice(0, 4000))} maxLength={4000} className="min-h-32 rounded-xl px-3 py-2.5 text-[0.9375rem] md:text-[0.9375rem]" />
             </label>
             <PageField page={page} setPage={setPage} />
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <p className="text-sm text-destructive">
+                {error}
+                {error.includes("Capa Dura") && (
+                  <>
+                    {" "}
+                    <Link href="/planos" className="font-medium text-anil hover:underline">
+                      Conhecer o Capa Dura
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
             <p className="text-xs text-ink-4">
               Discussões são públicas, mesmo com o perfil privado.
               {usage?.threadsPerMonthLimit != null && ` ${usage.threadsThisMonth} de ${usage.threadsPerMonthLimit} discussões novas neste mês no plano ${usage.planName}.`}

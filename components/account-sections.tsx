@@ -8,6 +8,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { changePasswordAction, deleteAccountAction, setPrivacyAction, updateSocialsAction } from "@/app/account-actions";
+import { getPlanStatus } from "@/app/billing-actions";
 import { getBlockedReaders, setBlockAction } from "@/app/social-actions";
 import { PlatformSelect } from "@/components/platform-select";
 import { Button } from "@/components/ui/button";
@@ -388,6 +389,44 @@ export function DataSection({ handle }: { handle: string }) {
           </div>
         </DialogContent>
       </Dialog>
+    </Section>
+  );
+}
+
+// ------------------------------------------------------------
+// Plano
+// ------------------------------------------------------------
+
+export function PlanSection() {
+  const [status, setStatus] = useState<Awaited<ReturnType<typeof getPlanStatus>> | null>(null);
+  useEffect(() => {
+    void getPlanStatus().then(setStatus);
+  }, []);
+  const plan = status?.status?.plan ?? "brochura";
+  const paid = plan !== "brochura";
+  const end = status?.status?.periodEnd ? new Date(status.status.periodEnd).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : null;
+
+  return (
+    <Section id="plano" title="Plano" description="Brochura é grátis para sempre. O Capa Dura tira os limites de citações, notas e discussões.">
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-4">
+        <div>
+          <p className="font-medium text-ink">{!status ? "..." : paid ? "Capa Dura" : "Brochura (grátis)"}</p>
+          <p className="text-sm text-ink-3">
+            {!status
+              ? "Carregando"
+              : paid
+                ? status.status?.canceling
+                  ? `Cancelado: vale até ${end}.`
+                  : end
+                    ? `Renova em ${end}.`
+                    : "Assinatura ativa."
+                : "20 citações, 3 notas por livro e 3 discussões novas por mês."}
+          </p>
+        </div>
+        <Button variant={paid ? "secondary" : "default"} nativeButton={false} render={<Link href="/planos" />}>
+          {paid ? "Gerenciar" : "Conhecer o Capa Dura"}
+        </Button>
+      </div>
     </Section>
   );
 }

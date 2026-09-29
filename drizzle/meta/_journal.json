@@ -50,6 +50,13 @@
       "when": 1790718520828,
       "tag": "0006_discussions",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790721126721,
+      "tag": "0007_subscriptions",
+      "breakpoints": true
     }
   ]
 }
