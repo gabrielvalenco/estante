@@ -7,6 +7,7 @@ import { BookActions } from "@/components/book-actions";
 import { BuyButton } from "@/components/buy-button";
 import { BookCover } from "@/components/book-cover";
 import { ListCard } from "@/components/list-card";
+import { DiscussionsSection } from "@/components/discussions";
 import { ReadingTools } from "@/components/reading-tools";
 import { ReviewCard } from "@/components/review-card";
 import { SectionHeader } from "@/components/shelf";
@@ -126,6 +127,12 @@ export default async function BookPage({ params }: Props) {
         <section className="mt-12 max-w-3xl lg:ml-[280px]">
           <SectionHeader title="Sua leitura" eyebrow="Só você vê" />
           <ReadingTools book={book} />
+        </section>
+
+        {/* Discussões com proteção de spoiler pelo marcador (carregadas no navegador) */}
+        <section className="mt-12 max-w-3xl lg:ml-[280px]">
+          <SectionHeader title="Discussões" eyebrow="Sem spoiler: cada um vê até onde leu" />
+          <DiscussionsSection book={{ id: book.id, title: book.title }} />
         </section>
 
         {/* Reviews */}

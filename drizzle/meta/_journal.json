@@ -43,6 +43,13 @@
       "when": 1790715702593,
       "tag": "0005_reading_tools",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790718520828,
+      "tag": "0006_discussions",
+      "breakpoints": true
     }
   ]
 }

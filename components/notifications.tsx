@@ -224,6 +224,8 @@ function Message({ item }: { item: NotificationItem }) {
       return <>curtiu sua review de {book}.</>;
     case "friend_finished":
       return <>terminou {book}, que está na sua lista Quero ler.</>;
+    case "discussion_reply":
+      return <>respondeu sua discussão sobre {book}.</>;
   }
 }
 

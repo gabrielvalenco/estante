@@ -211,7 +211,7 @@ export const reviewReactions = pgTable(
   ],
 );
 
-export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished"] as const;
+export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished", "discussion_reply"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /**
@@ -306,6 +306,89 @@ export const annotations = pgTable(
 
 export type AnnotationRow = typeof annotations.$inferSelect;
 export type ReadingProgressRow = typeof readingProgress.$inferSelect;
+
+/**
+ * Discussões por livro. Cada tópico e cada resposta dizem até que página falam
+ * (0 = sem spoiler). Quem ainda não chegou lá recebe só o aviso de spoiler, sem o texto.
+ * São públicas, como as reviews; bloqueios escondem os dois lados.
+ */
+export const discussionThreads = pgTable(
+  "discussion_threads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bookId: text("book_id").notNull(),
+    /** Cópia do título do livro, para as notificações. */
+    bookTitle: text("book_title").notNull(),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    page: integer("page").notNull().default(0),
+    replyCount: integer("reply_count").notNull().default(0),
+    /** Escondido pela moderação (3 denúncias de pessoas diferentes). */
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("discussion_threads_book_idx").on(t.bookId, t.lastActivityAt.desc()),
+    index("discussion_threads_author_idx").on(t.authorId, t.createdAt.desc()),
+    check("discussion_threads_book_id", sql`${t.bookId} ~ '^OL[0-9]+W$'`),
+    check("discussion_threads_book_title", sql`char_length(${t.bookTitle}) between 1 and 300`),
+    check("discussion_threads_title", sql`char_length(${t.title}) between 3 and 120`),
+    check("discussion_threads_body", sql`char_length(${t.body}) between 1 and 4000`),
+    check("discussion_threads_page", sql`${t.page} between 0 and 100000`),
+  ],
+);
+
+export const discussionPosts = pgTable(
+  "discussion_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => discussionThreads.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    body: text("body").notNull(),
+    page: integer("page").notNull().default(0),
+    hidden: boolean("hidden").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("discussion_posts_thread_idx").on(t.threadId, t.createdAt),
+    index("discussion_posts_author_idx").on(t.authorId, t.createdAt.desc()),
+    check("discussion_posts_body", sql`char_length(${t.body}) between 1 and 4000`),
+    check("discussion_posts_page", sql`${t.page} between 0 and 100000`),
+  ],
+);
+
+/** Denúncias. Uma por pessoa por item; 3 escondem o item até alguém revisar. */
+export const discussionReports = pgTable(
+  "discussion_reports",
+  {
+    reporterId: uuid("reporter_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    targetKind: text("target_kind", { enum: ["thread", "post"] }).notNull(),
+    targetId: uuid("target_id").notNull(),
+    reason: text("reason").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.reporterId, t.targetKind, t.targetId] }),
+    index("discussion_reports_target_idx").on(t.targetKind, t.targetId),
+    check("discussion_reports_kind", sql`${t.targetKind} in ('thread', 'post')`),
+    check("discussion_reports_reason", sql`char_length(${t.reason}) <= 300`),
+  ],
+);
+
+export type DiscussionThreadRow = typeof discussionThreads.$inferSelect;
+export type DiscussionPostRow = typeof discussionPosts.$inferSelect;
 
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;

@@ -48,9 +48,18 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | POST | `/annotations` | sim | `{ book, kind, text, comment?, page? }` → 201; passou do limite do plano: 402 com `usage` |
 | PATCH | `/annotations/:id` | sim | `{ text?, comment?, page? }` |
 | DELETE | `/annotations/:id` | sim | Exclui a anotação |
+| GET | `/books/:id/discussions?spoilers=1` | opcional | `{ threads, viewer, usage }`; o que passa da página de quem pede vem com `spoiler: true` e sem texto |
+| POST | `/books/:id/discussions` | sim | `{ bookTitle, title, body, page }` → 201; limite do plano: 402; muitas mensagens seguidas: 429 |
+| GET | `/discussions/:id?spoilers=1` | opcional | `{ thread, posts, viewer, book }` |
+| DELETE | `/discussions/:id` | sim | Apaga a própria discussão |
+| POST | `/discussions/:id/posts` | sim | `{ body, page }` → 201 |
+| DELETE | `/posts/:id` | sim | Apaga a própria resposta |
+| POST | `/reports` | sim | `{ kind: "thread" | "post", id, reason? }`; 3 denúncias escondem o item |
 
 Valores de `status`: `quero-ler`, `lendo`, `lido` ou `null`. `rating`: 0.5 a 5, de meia em meia, ou `null`.
 Anotações e marcadores são privados: cada token só enxerga os da própria conta.
-Limites do plano Brochura (grátis): 20 citações no total e 3 notas por livro (`lib/plans.ts`).
+Limites do plano Brochura (grátis): 20 citações no total, 3 notas por livro e 3 discussões novas por mês (`lib/plans.ts`).
+
+Discussões: cada item tem `page` (0 = sem spoiler). Quem está numa página anterior recebe `spoiler: true` com `title` e `body` nulos; quem marcou o livro como lido vê tudo.
 
 `finishedOn`: `AAAA-MM-DD`. Capas: `https://covers.openlibrary.org/b/id/<coverId>-M.jpg` (S, M ou L).
