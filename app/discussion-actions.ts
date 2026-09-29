@@ -60,6 +60,8 @@ export type Viewer = {
   page: number | null;
   finished: boolean;
   revealed: boolean;
+  /** Página do marcador, mesmo com os spoilers à mostra (padrão ao escrever). 0 sem marcador. */
+  bookmark: number;
 };
 
 export type ThreadUsage = { planName: string; threadsThisMonth: number; threadsPerMonthLimit: number | null };
@@ -79,13 +81,13 @@ const author = {
 // ------------------------------------------------------------
 
 async function viewerOf(me: string | null, bookId: string, reveal: boolean): Promise<Viewer> {
-  if (!me || !db) return { loggedIn: false, page: reveal ? null : 0, finished: false, revealed: reveal };
+  if (!me || !db) return { loggedIn: false, page: reveal ? null : 0, finished: false, revealed: reveal, bookmark: 0 };
   const [entry, progress] = await Promise.all([
     db.query.entries.findFirst({ where: and(eq(entries.userId, me), eq(entries.bookId, bookId)), columns: { status: true } }),
     db.query.readingProgress.findFirst({ where: and(eq(readingProgress.userId, me), eq(readingProgress.bookId, bookId)), columns: { page: true } }),
   ]);
   const finished = entry?.status === "lido";
-  return { loggedIn: true, page: finished || reveal ? null : (progress?.page ?? 0), finished, revealed: reveal && !finished };
+  return { loggedIn: true, page: finished || reveal ? null : (progress?.page ?? 0), finished, revealed: reveal && !finished, bookmark: progress?.page ?? 0 };
 }
 
 const visible = (viewer: Viewer, page: number, mine: boolean) => mine || viewer.page === null || page <= viewer.page;

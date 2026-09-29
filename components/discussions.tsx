@@ -93,7 +93,7 @@ export function DiscussionsSection({ book }: { book: { id: string; title: string
   const userId = auth.status === "user" ? auth.profile.id : null;
 
   const load = useCallback(() => {
-    void listThreads(book.id, reveal).then(setData, () => setData({ threads: [], viewer: { loggedIn: false, page: 0, finished: false, revealed: false }, usage: null }));
+    void listThreads(book.id, reveal).then(setData, () => setData({ threads: [], viewer: { loggedIn: false, page: 0, finished: false, revealed: false, bookmark: 0 }, usage: null }));
   }, [book.id, reveal]);
   useEffect(() => {
     if (auth.status !== "loading") load();
@@ -156,7 +156,7 @@ export function DiscussionsSection({ book }: { book: { id: string; title: string
       {creating && (
         <NewThreadDialog
           book={book}
-          defaultPage={data.viewer.page ?? 0}
+          defaultPage={data.viewer.bookmark}
           usage={data.usage}
           onClose={() => setCreating(false)}
           onCreated={() => {
@@ -374,7 +374,7 @@ export function ThreadPage({ threadId, bookId }: { threadId: string; bookId: str
       </ul>
 
       {viewer.loggedIn ? (
-        <ReplyForm threadId={thread.id} defaultPage={viewer.page ?? thread.page} onSent={load} />
+        <ReplyForm threadId={thread.id} defaultPage={viewer.bookmark} onSent={load} />
       ) : (
         <div className="mt-6 rounded-2xl bg-sunken p-5 text-center text-sm text-ink-3">
           <Link href={`/entrar?next=/livro/${book.id}/discussao/${thread.id}`} className="font-medium text-anil hover:underline">
