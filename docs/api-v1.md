@@ -41,6 +41,7 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | GET | `/feed` | sim | `{ items }`: leituras recentes de quem você segue |
 | GET | `/notifications` | sim | `{ items, unread }` |
 | POST | `/notifications/read` | sim | Marca todas como lidas |
+| POST | `/requests/:handle` | sim | `{ accept: boolean }`: aceita ou recusa um pedido para seguir |
 
 Valores de `status`: `quero-ler`, `lendo`, `lido` ou `null`. `rating`: 0.5 a 5, de meia em meia, ou `null`.
 `finishedOn`: `AAAA-MM-DD`. Capas: `https://covers.openlibrary.org/b/id/<coverId>-M.jpg` (S, M ou L).
