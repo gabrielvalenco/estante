@@ -1,3 +1,5 @@
+import { blobToken } from "@/lib/blob-token";
+
 /**
  * O que está ligado neste ambiente. Lido no servidor e repassado ao cliente pelo layout.
  * Sem banco ou sem AUTH_SECRET, o app roda em modo demonstração (estante no navegador, sem login).
@@ -11,7 +13,7 @@ const google = ready && Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_G
 /** E-mail e senha só dependem do banco: está sempre disponível quando há contas. */
 const password = ready;
 /** Envio de foto de perfil: precisa do Vercel Blob (em desenvolvimento, salva no disco). */
-const avatars = ready && (Boolean(process.env.BLOB_READ_WRITE_TOKEN) || process.env.NODE_ENV === "development");
+const avatars = ready && (Boolean(blobToken()) || process.env.NODE_ENV === "development");
 const devLogin = ready && process.env.NODE_ENV === "development" && process.env.ENABLE_DEV_LOGIN === "true";
 
 export const authFlags = {

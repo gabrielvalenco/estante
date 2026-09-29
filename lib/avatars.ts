@@ -4,6 +4,8 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { blobToken } from "@/lib/blob-token";
+
 
 /**
  * Fotos de perfil. Toda foto vira um quadrado de 256px em WebP (uns 10 a 25 KB), sem metadados
@@ -30,7 +32,7 @@ const LOCAL_PREFIX = "/uploads/avatars/";
 export type AvatarStorage = "blob" | "local" | null;
 
 export function avatarStorage(): AvatarStorage {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return "blob";
+  if (blobToken()) return "blob";
   if (process.env.NODE_ENV === "development") return "local";
   return null;
 }
@@ -62,6 +64,7 @@ export async function storeAvatar(profileId: string, webp: Buffer): Promise<stri
     const { put } = await loadBlob();
     const blob = await put(`avatars/${name}`, webp, {
       access: "public",
+      token: blobToken(),
       contentType: "image/webp",
       cacheControlMaxAge: 60 * 60 * 24 * 365, // endereço muda a cada troca, então pode ficar em cache
     });
@@ -82,9 +85,9 @@ export async function deleteAvatar(url: string | null | undefined) {
     if (url.startsWith(LOCAL_PREFIX)) {
       const file = path.basename(url);
       if (/^[\w-]+\.webp$/.test(file)) await unlink(path.join(LOCAL_DIR, file));
-    } else if (process.env.BLOB_READ_WRITE_TOKEN && new URL(url).hostname.endsWith(".blob.vercel-storage.com")) {
+    } else if (blobToken() && new URL(url).hostname.endsWith(".blob.vercel-storage.com")) {
       const { del } = await loadBlob();
-      await del(url);
+      await del(url, { token: blobToken() });
     }
   } catch {
     // arquivo já não existia: nada a fazer
