@@ -114,6 +114,11 @@ export default function PrivacyPage() {
                 <li>GitHub e Bluesky, que recebem o @ informado quando conferimos se uma rede social é sua.</li>
               </List>
               <p>
+                <strong className="text-ink">Links de compra:</strong> o botão &ldquo;Comprar na Amazon&rdquo; é um link de afiliado. Como
+                Associado da Amazon, a {SITE.name} ganha com compras qualificadas, sem custo extra para você. Ao clicar, você vai para o site da
+                Amazon, que tem a própria política de privacidade e pode usar cookies próprios. Não enviamos nenhum dado da sua conta à Amazon.
+              </p>
+              <p>
                 Esses serviços podem guardar dados fora do Brasil. A transferência internacional se apoia na execução do serviço que você pediu (art.
                 33, IX) e nas garantias contratuais desses fornecedores.
               </p>

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { changePasswordAction, deleteAccountAction, setPrivacyAction, updateSocialsAction } from "@/app/account-actions";
 import { getBlockedReaders, setBlockAction } from "@/app/social-actions";
+import { PlatformSelect } from "@/components/platform-select";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/user-avatar";
@@ -138,18 +139,14 @@ export function SocialsSection({ profile }: { profile: Profile }) {
           return (
             <div key={i} className="grid gap-1.5">
               <div className="flex gap-2">
-                <select
-                  aria-label="Rede"
+                <PlatformSelect
                   value={row.platform}
-                  onChange={(e) => setRows(rows.map((r, j) => (j === i ? { ...r, platform: e.target.value as Platform } : r)))}
-                  className={cn(inputClass, "w-36 shrink-0 px-3")}
-                >
-                  {PLATFORM_KEYS.map((p) => (
-                    <option key={p} value={p} disabled={p !== row.platform && used.has(p)}>
-                      {PLATFORMS[p].label}
-                    </option>
-                  ))}
-                </select>
+                  used={used}
+                  onChange={(platform) => {
+                    setRows(rows.map((r, j) => (j === i ? { ...r, platform } : r)));
+                    setErrors((x) => ({ ...x, [i]: "" }));
+                  }}
+                />
                 <div className="relative min-w-0 flex-1">
                   <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-4">@</span>
                   <input

@@ -1,5 +1,6 @@
 import { BadgeCheck, Crown, Lock } from "lucide-react";
 
+import { SocialIcon } from "@/components/social-icon";
 import { PLATFORMS, socialUrl, type SocialLink } from "@/lib/socials";
 import { cn } from "@/lib/utils";
 
@@ -42,10 +43,12 @@ export function SocialLinks({ links, className }: { links: SocialLink[]; classNa
             href={socialUrl(l)}
             target="_blank"
             rel="me noopener noreferrer nofollow"
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-sunken px-3 text-[0.8125rem] text-ink-2 transition-colors hover:bg-line hover:text-ink"
+            title={`${PLATFORMS[l.platform].label}: @${l.handle}`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-sunken pr-3 pl-2.5 text-[0.8125rem] text-ink-2 transition-colors hover:bg-line hover:text-ink"
           >
-            <span className="font-medium text-ink">{PLATFORMS[l.platform].label}</span>
-            <span className="text-ink-3">@{l.handle}</span>
+            <SocialIcon platform={l.platform} />
+            <span className="sr-only">{PLATFORMS[l.platform].label}:</span>
+            <span>@{l.handle}</span>
             {l.verified && (
               <BadgeCheck className="size-4 text-musgo" aria-label="Verificado: o perfil da rede aponta para esta página" />
             )}

@@ -1,12 +1,13 @@
 import Link from "next/link";
 
 import { Mark } from "@/components/brand";
+import { AFFILIATE_DISCLOSURE, affiliateEnabled } from "@/lib/affiliate";
 import { SITE } from "@/lib/site";
 
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-line">
-      <div className="container-page flex flex-col gap-4 py-8 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="container-page flex flex-col gap-4 pt-8 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Mark size={18} />
           <span>{SITE.name}. Os leitores de demonstração são fictícios.</span>
@@ -26,6 +27,7 @@ export function SiteFooter() {
           </span>
         </nav>
       </div>
+      <p className="container-page pt-4 pb-8 text-xs text-ink-4">{affiliateEnabled ? AFFILIATE_DISCLOSURE : null}</p>
     </footer>
   );
 }

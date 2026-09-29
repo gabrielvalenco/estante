@@ -20,6 +20,7 @@ escreva reviews curtas e descubra livros pelas listas de outros leitores.
   (baixar os dados em JSON e excluir a conta). Política de privacidade e termos de uso em [/privacidade](app/privacidade/page.tsx).
 - **Perfil:** nome e @ únicos, até 3 redes sociais montadas pelo app (sem link livre) com selo de verificado no
   GitHub e no Bluesky quando o perfil aponta de volta para a Estante.
+- **Comprar o livro:** botão com link de afiliado da Amazon (busca pelo título, em Livros), com `rel="sponsored"` e o aviso do Associados. Liga com a variável `AMAZON_ASSOCIATE_TAG`.
 - **Listas** curadas e página de explorar com filtro por gênero e ordenação.
 
 ## Três cores, uma estante
