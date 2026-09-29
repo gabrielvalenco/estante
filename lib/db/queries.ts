@@ -22,10 +22,11 @@ const PUBLIC_PROFILE = {
   isPrivate: profiles.isPrivate,
   founder: profiles.founder,
   socials: profiles.socials,
+  avatarUrl: profiles.avatarUrl,
   createdAt: profiles.createdAt,
 } as const;
 
-export type PublicProfileRow = Omit<ProfileRow, "providerId">;
+export type PublicProfileRow = Omit<ProfileRow, "providerId" | "avatarOptOut">;
 
 /**
  * Leituras públicas do banco. Não dependem de cookies, então as páginas continuam
@@ -43,7 +44,7 @@ async function safe<T>(fallback: T, run: () => Promise<T>): Promise<T> {
   }
 }
 
-const reviewAuthor = { handle: profiles.handle, name: profiles.name, tone: profiles.tone, founder: profiles.founder };
+const reviewAuthor = { handle: profiles.handle, name: profiles.name, tone: profiles.tone, avatarUrl: profiles.avatarUrl, founder: profiles.founder };
 
 // Contagem de reações de cada review (autor + livro).
 const likeCount = sql<number>`(select count(*)::int from ${reviewReactions} r where r.review_user_id = ${entries.userId} and r.book_id = ${entries.bookId} and r.value = 1)`;
@@ -163,7 +164,7 @@ export function searchReaders(query: string, limit = 5): Promise<ProfileCard[]> 
   return safe([], async () => {
     const term = likeEscape(q.toLowerCase());
     return db!
-      .select({ handle: profiles.handle, name: profiles.name, tone: profiles.tone, isPrivate: profiles.isPrivate, founder: profiles.founder })
+      .select({ handle: profiles.handle, name: profiles.name, tone: profiles.tone, avatarUrl: profiles.avatarUrl, isPrivate: profiles.isPrivate, founder: profiles.founder })
       .from(profiles)
       .where(or(ilike(profiles.handle, `${term}%`), ilike(profiles.name, `%${term}%`)))
       .orderBy(sql`(${profiles.handle} ilike ${term + "%"}) desc`, profiles.handle)
@@ -173,7 +174,7 @@ export function searchReaders(query: string, limit = 5): Promise<ProfileCard[]> 
 
 export type SharedReview = {
   entry: EntryRow;
-  profile: { id: string; handle: string; name: string; tone: string; isPrivate: boolean; founder: boolean };
+  profile: { id: string; handle: string; name: string; tone: string; avatarUrl: string | null; isPrivate: boolean; founder: boolean };
 };
 
 /**
@@ -186,7 +187,7 @@ export function reviewByHandle(handle: string, bookId: string): Promise<SharedRe
     const [row] = await db!
       .select({
         entry: entries,
-        profile: { id: profiles.id, handle: profiles.handle, name: profiles.name, tone: profiles.tone, isPrivate: profiles.isPrivate, founder: profiles.founder },
+        profile: { id: profiles.id, handle: profiles.handle, name: profiles.name, tone: profiles.tone, avatarUrl: profiles.avatarUrl, isPrivate: profiles.isPrivate, founder: profiles.founder },
       })
       .from(entries)
       .innerJoin(profiles, eq(entries.userId, profiles.id))

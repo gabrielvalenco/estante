@@ -5,7 +5,7 @@ import type { EntryRow } from "@/lib/db/schema";
 /** Review pronta para exibir, venha dos dados de demonstração ou do banco. */
 export type ReviewView = {
   id: string;
-  user: Pick<User, "handle" | "name"> & { tone: string; founder?: boolean };
+  user: Pick<User, "handle" | "name"> & { tone: string; avatarUrl?: string | null; founder?: boolean };
   book: Pick<Book, "id" | "title" | "author" | "coverId" | "color" | "year">;
   rating: number | null;
   text: string;
@@ -41,7 +41,7 @@ export function fromDemo(r: Review): ReviewView | null {
 
 export type EntryWithProfile = {
   entry: EntryRow;
-  profile: { handle: string; name: string; tone: string; founder: boolean };
+  profile: { handle: string; name: string; tone: string; avatarUrl: string | null; founder: boolean };
   likes: number;
   dislikes: number;
 };

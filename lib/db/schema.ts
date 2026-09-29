@@ -50,6 +50,10 @@ export const profiles = pgTable(
     founder: boolean("founder").notNull().default(false),
     /** Até 3 redes sociais: plataforma + @ (a URL é montada pelo app, nunca digitada). */
     socials: jsonb("socials").$type<SocialLink[]>().notNull().default(sql`'[]'::jsonb`),
+    /** Foto de perfil: 256px WebP no Vercel Blob. null = iniciais no círculo colorido. */
+    avatarUrl: text("avatar_url"),
+    /** A pessoa removeu a foto: não importar de novo a do Google/GitHub no próximo login. */
+    avatarOptOut: boolean("avatar_opt_out").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -64,6 +68,8 @@ export const profiles = pgTable(
     check("profiles_goal", sql`${t.goal} between 1 and 365`),
     check("profiles_favorites", sql`cardinality(${t.favorites}) <= 4`),
     check("profiles_socials", sql`jsonb_typeof(${t.socials}) = 'array' and jsonb_array_length(${t.socials}) <= 3`),
+    // Só https (Vercel Blob) ou o disco local do ambiente de desenvolvimento.
+    check("profiles_avatar_url", sql`${t.avatarUrl} is null or ${t.avatarUrl} ~ '^(https://|/uploads/avatars/)'`),
     // Nome de exibição único, sem diferenciar maiúsculas.
     uniqueIndex("profiles_name_unique").on(sql`lower(${t.name})`),
   ],

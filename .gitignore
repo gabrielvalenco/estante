@@ -43,3 +43,6 @@ next-env.d.ts
 # claude code
 .claude/
 !.env.example
+
+# fotos de perfil enviadas em desenvolvimento (lib/avatars.ts)
+/public/uploads/

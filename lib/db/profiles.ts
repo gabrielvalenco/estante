@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
+import { deleteAvatar, importProviderAvatar } from "@/lib/avatars";
 import { db } from "@/lib/db";
 import { profiles, RESERVED_HANDLES, type ProfileRow } from "@/lib/db/schema";
 
@@ -70,4 +71,27 @@ async function nameSuffix(name: string) {
   const used = new Set(taken.map((t) => t.name.toLowerCase()));
   if (!used.has(name.toLowerCase())) return 0;
   for (let n = 2; ; n++) if (!used.has(`${name} ${n}`.toLowerCase())) return n;
+}
+
+/**
+ * Foto do Google/GitHub como foto inicial. Só quando a pessoa ainda não tem foto e nunca removeu
+ * uma (avatar_opt_out): assim, quem tirou a foto não a vê voltar no próximo login.
+ */
+export async function adoptProviderAvatar(profileId: string, image: string | null | undefined) {
+  if (!db || !image) return;
+  const current = await db.query.profiles.findFirst({
+    where: eq(profiles.id, profileId),
+    columns: { avatarUrl: true, avatarOptOut: true },
+  });
+  if (!current || current.avatarUrl || current.avatarOptOut) return;
+
+  const url = await importProviderAvatar(profileId, image);
+  if (!url) return;
+  // Só grava se continuar sem foto (a pessoa pode ter enviado uma nesse meio tempo).
+  const [saved] = await db
+    .update(profiles)
+    .set({ avatarUrl: url })
+    .where(and(eq(profiles.id, profileId), isNull(profiles.avatarUrl), eq(profiles.avatarOptOut, false)))
+    .returning({ handle: profiles.handle });
+  if (!saved) await deleteAvatar(url);
 }

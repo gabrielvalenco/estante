@@ -34,6 +34,8 @@ export type ProfileView = {
   name: string;
   bio: string;
   tone: string;
+  /** Foto de perfil; leitores de demonstração usam só as iniciais. */
+  avatarUrl: string | null;
   goal: number;
   lists: List[];
   isDemo: boolean;
@@ -99,6 +101,7 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
       name: demo.name,
       bio: demo.bio,
       tone: demo.tone,
+      avatarUrl: null,
       goal: demo.goal,
       lists: LISTS.filter((l) => l.user === handle),
       isDemo: true,
@@ -127,6 +130,7 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
     name: p.name,
     bio: p.bio,
     tone: p.tone,
+    avatarUrl: p.avatarUrl,
     goal: p.goal,
     lists: [],
     isDemo: false,

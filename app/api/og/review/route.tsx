@@ -4,6 +4,7 @@ import path from "node:path";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 
+import { avatarPngDataUrl } from "@/lib/avatars";
 import { coverUrl } from "@/lib/books";
 import { reviewByHandle } from "@/lib/db/queries";
 import { relationship } from "@/lib/db/social";
@@ -164,7 +165,7 @@ export async function GET(request: NextRequest) {
   const { entry, profile } = data;
   const rating = entry.rating === null ? null : Number(entry.rating);
   const color = /^#[0-9a-f]{6}$/i.test(entry.bookColor) ? entry.bookColor : "#3a2fd6";
-  const cover = await coverDataUrl(entry.bookCoverId);
+  const [cover, photo] = await Promise.all([coverDataUrl(entry.bookCoverId), avatarPngDataUrl(profile.avatarUrl, 160)]);
   const tone = TONES[profile.tone] ?? TONES.anil;
   const initials = profile.name.split(/\s+/).filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   const verb = entry.review ? "escreveu sobre" : "avaliou";
@@ -172,9 +173,14 @@ export async function GET(request: NextRequest) {
 
   const User = ({ scale }: { scale: number }) => (
     <div style={{ display: "flex", alignItems: "center", gap: 18 * scale }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 64 * scale, height: 64 * scale, borderRadius: 999, backgroundColor: tone.bg, color: tone.fg, fontSize: 26 * scale, fontWeight: 700 }}>
-        {initials || "?"}
-      </div>
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element -- ImageResponse (satori) só aceita <img>
+        <img src={photo} alt="" width={64 * scale} height={64 * scale} style={{ borderRadius: 999 }} />
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 64 * scale, height: 64 * scale, borderRadius: 999, backgroundColor: tone.bg, color: tone.fg, fontSize: 26 * scale, fontWeight: 700 }}>
+          {initials || "?"}
+        </div>
+      )}
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", fontSize: 30 * scale, fontWeight: 600, color: "#f5f5f7" }}>{profile.name}</div>
         <div style={{ display: "flex", fontSize: 24 * scale, color: "rgba(245,245,247,0.6)" }}>{`@${profile.handle} ${verb}`}</div>

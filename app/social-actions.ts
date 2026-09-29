@@ -162,7 +162,7 @@ export async function getNotifications(limit = 30): Promise<{ items: Notificatio
   const rows = await db
     .select({
       n: notifications,
-      actor: { handle: profiles.handle, name: profiles.name, tone: profiles.tone, isPrivate: profiles.isPrivate, founder: profiles.founder },
+      actor: { handle: profiles.handle, name: profiles.name, tone: profiles.tone, avatarUrl: profiles.avatarUrl, isPrivate: profiles.isPrivate, founder: profiles.founder },
       pending: sql<boolean>`exists (select 1 from ${followRequests} fr where fr.requester_id = ${notifications.actorId} and fr.target_id = ${me})`,
     })
     .from(notifications)
@@ -262,7 +262,7 @@ export async function getBlockedReaders(): Promise<ProfileCard[]> {
   const me = await currentProfileId();
   if (!me || !db) return [];
   return db
-    .select({ handle: profiles.handle, name: profiles.name, tone: profiles.tone, isPrivate: profiles.isPrivate, founder: profiles.founder })
+    .select({ handle: profiles.handle, name: profiles.name, tone: profiles.tone, avatarUrl: profiles.avatarUrl, isPrivate: profiles.isPrivate, founder: profiles.founder })
     .from(blocks)
     .innerJoin(profiles, eq(blocks.blockedId, profiles.id))
     .where(eq(blocks.blockerId, me))
@@ -284,7 +284,7 @@ export type SuggestedReader = ProfileCard & { reason: string; score: number };
 export async function getSuggestedReaders(limit = 6): Promise<SuggestedReader[]> {
   if (!db) return [];
   const me = await currentProfileId();
-  const card = { handle: profiles.handle, name: profiles.name, tone: profiles.tone, isPrivate: profiles.isPrivate, founder: profiles.founder };
+  const card = { handle: profiles.handle, name: profiles.name, tone: profiles.tone, avatarUrl: profiles.avatarUrl, isPrivate: profiles.isPrivate, founder: profiles.founder };
 
   // Quem não pode aparecer: eu, quem já sigo ou pedi, e bloqueios nas duas direções.
   const excluded = new Set<string>();

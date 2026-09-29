@@ -345,14 +345,15 @@ export async function getFollowingFeed(): Promise<FeedItem[] | null> {
       handle: profiles.handle,
       name: profiles.name,
       tone: profiles.tone,
+      avatarUrl: profiles.avatarUrl,
     })
     .from(entries)
     .innerJoin(profiles, eq(entries.userId, profiles.id))
     .where(inArray(entries.userId, followed))
     .orderBy(desc(entries.updatedAt))
     .limit(60);
-  return rows.map(({ entry, handle, name, tone }) => ({
-    user: { handle, name, tone },
+  return rows.map(({ entry, handle, name, tone, avatarUrl }) => ({
+    user: { handle, name, tone, avatarUrl },
     ...toShelfEntry(entry),
   }));
 }

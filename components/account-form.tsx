@@ -7,12 +7,12 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { updateProfileAction } from "@/app/actions";
+import { AvatarEditor } from "@/components/avatar-editor";
 import { BlockedSection, DataSection, PasswordSection, PrivacySection, SocialsSection } from "@/components/account-sections";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { UserAvatar } from "@/components/user-avatar";
 import { updateProfile, useAuth, useAuthFlags, type Profile } from "@/lib/auth";
 import { useLibrary } from "@/lib/library";
 import { cn } from "@/lib/utils";
@@ -119,7 +119,7 @@ function Form({ profile }: { profile: Profile }) {
   return (
     <form onSubmit={save} className="max-w-2xl" noValidate>
       <div className="flex items-center gap-4">
-        <UserAvatar user={draft} size={64} href={false} />
+        <AvatarEditor profile={profile} preview={draft} />
         <div>
           <h1 className="text-title font-semibold text-ink">Configurações</h1>
           <p className="text-sm text-ink-3">@{profile.handle}</p>

@@ -5,7 +5,7 @@ import Google from "next-auth/providers/google";
 
 import { authFlags } from "@/lib/auth-flags";
 import { signInWithPassword, signUpWithPassword, type PasswordAuthError } from "@/lib/db/password-auth";
-import { ensureProfile } from "@/lib/db/profiles";
+import { adoptProviderAvatar, ensureProfile } from "@/lib/db/profiles";
 
 /**
  * Login com Auth.js. Sessão em JWT (sem tabelas de sessão): o token guarda só o id do perfil.
@@ -51,12 +51,14 @@ if (authFlags.devLogin) {
     Credentials({
       id: "dev",
       name: "Leitor de teste",
-      credentials: { name: { label: "Nome" } },
+      // image: só para testar a importação da foto do provedor (lib/avatars.ts).
+      credentials: { name: { label: "Nome" }, image: {} },
       authorize: (credentials) => {
         const name = String(credentials?.name ?? "").trim().slice(0, 60);
         if (!name) return null;
         const slug = name.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, "").slice(0, 20) || "leitor";
-        return { id: slug, name };
+        const image = typeof credentials?.image === "string" && credentials.image ? credentials.image : undefined;
+        return { id: slug, name, image };
       },
     }),
   );
@@ -85,6 +87,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           login,
         });
         token.profileId = created.id;
+        // Primeira entrada: a foto do Google/GitHub vira a foto do perfil (copiada para o nosso Blob).
+        await adoptProviderAvatar(created.id, user.image);
       }
       return token;
     },

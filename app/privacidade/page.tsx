@@ -50,9 +50,14 @@ export default function PrivacyPage() {
                 <strong className="text-ink">Com conta:</strong>
               </p>
               <List>
-                <li>Cadastro: nome de exibição, @ e, se você escolher, bio, meta de leitura, cor do avatar e até 3 redes sociais.</li>
+                <li>Cadastro: nome de exibição, @ e, se você escolher, bio, meta de leitura, cor do avatar, foto de perfil e até 3 redes sociais.</li>
                 <li>
-                  Login: se entrar com Google ou GitHub, o identificador da conta nesse serviço e o nome público. Se entrar com e-mail e senha, o
+                  Foto de perfil: se entrar com Google ou GitHub, copiamos a foto pública dessa conta como sua foto inicial. Você pode trocar ou
+                  remover a qualquer momento; removida, ela não volta. Toda foto é reduzida para 256×256 e os metadados do arquivo (como localização
+                  e modelo da câmera) são descartados. A foto é pública, mesmo com o perfil privado, como o nome.
+                </li>
+                <li>
+                  Login: se entrar com Google ou GitHub, o identificador da conta nesse serviço, o nome público e a foto. Se entrar com e-mail e senha, o
                   e-mail e a senha guardada com hash (scrypt com salt); nunca guardamos a senha em si.
                 </li>
                 <li>Uso: livros na estante, notas, curtidas, reviews, datas de leitura, quem você segue, bloqueios, reações e notificações.</li>
@@ -107,7 +112,7 @@ export default function PrivacyPage() {
             <>
               <p>Não vendemos nem alugamos dados. Usamos operadores que tratam dados em nosso nome, só para o serviço funcionar:</p>
               <List>
-                <li>Vercel (hospedagem do site e registros de acesso).</li>
+                <li>Vercel (hospedagem do site, registros de acesso e armazenamento das fotos de perfil).</li>
                 <li>Neon (banco de dados).</li>
                 <li>Google e GitHub, somente se você escolher entrar por eles.</li>
                 <li>Open Library, que recebe os termos que você busca (sem qualquer dado da sua conta).</li>
@@ -159,7 +164,7 @@ export default function PrivacyPage() {
                   <A href="/conta#dados">Configurações › Seus dados</A>.
                 </li>
                 <li>
-                  <strong className="text-ink">Correção:</strong> edite nome, @, bio e redes em <A href="/conta">Configurações</A>.
+                  <strong className="text-ink">Correção:</strong> edite nome, @, foto, bio e redes em <A href="/conta">Configurações</A>.
                 </li>
                 <li>
                   <strong className="text-ink">Eliminação:</strong> exclua a conta em <A href="/conta#dados">Configurações › Seus dados</A>.

@@ -38,6 +38,7 @@ export async function GET() {
       isPrivate: profile.isPrivate,
       favorites: profile.favorites,
       socials: profile.socials,
+      avatarUrl: profile.avatarUrl,
       loginProvider: profile.providerId.split(":")[0],
       createdAt: profile.createdAt,
     },

@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AvatarPhoto } from "@/components/avatar-photo";
 import type { User } from "@/lib/data/social";
 import { cn } from "@/lib/utils";
 
@@ -10,34 +11,45 @@ const TONES: Record<string, string> = {
   ambar: "bg-ambar-soft text-ambar-ink",
 };
 
-/** Avatar com iniciais na cor do leitor. Sem foto, de propósito: nada de rosto de banco de imagens. */
+export function initialsOf(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((p) => p[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+}
+
+/**
+ * Avatar do leitor: a foto, se houver, sobre as iniciais na cor escolhida. As iniciais ficam por
+ * baixo enquanto a foto carrega e continuam lá se ela falhar. Fotos são 256px WebP (lib/avatars.ts).
+ */
 export function UserAvatar({
   user,
   size = 32,
   href = true,
   className,
 }: {
-  user: Pick<User, "handle" | "name"> & { tone: string };
+  user: Pick<User, "handle" | "name"> & { tone: string; avatarUrl?: string | null };
   size?: number;
   href?: boolean;
   className?: string;
 }) {
-  const initials =
-    user.name
-      .split(/\s+/)
-      .filter(Boolean)
-      .map((p) => p[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?";
-
   const avatar = (
     <span
       aria-hidden={href || undefined}
-      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-semibold select-none", TONES[user.tone] ?? TONES.anil, className)}
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold select-none",
+        TONES[user.tone] ?? TONES.anil,
+        className,
+      )}
       style={{ width: size, height: size, fontSize: size * 0.38, letterSpacing: "-0.02em" }}
     >
-      {initials}
+      {initialsOf(user.name)}
+      {user.avatarUrl && <AvatarPhoto key={user.avatarUrl} src={user.avatarUrl} size={size} />}
     </span>
   );
 

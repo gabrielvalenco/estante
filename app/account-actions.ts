@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
+import { AVATAR_MAX_BYTES, deleteAvatar, optimizeAvatar, storeAvatar } from "@/lib/avatars";
 import { db } from "@/lib/db";
 import { entries, followRequests, follows, passwordLogins, profiles } from "@/lib/db/schema";
 import { toProfile, type Profile } from "@/lib/db/types";
@@ -161,6 +162,52 @@ export async function updateSocialsAction(
 }
 
 // ------------------------------------------------------------
+// Foto de perfil
+// ------------------------------------------------------------
+
+export type AvatarResult = { ok: true; profile: Profile } | { ok: false; error: "unauthenticated" | "unavailable" | "too_big" | "invalid" };
+
+/**
+ * Troca a foto. O navegador já manda o recorte quadrado reduzido; aqui a imagem é conferida
+ * pelo conteúdo e processada de novo (256px WebP, sem metadados), então nada do arquivo
+ * original chega ao armazenamento. A foto anterior é apagada.
+ */
+export async function uploadAvatarAction(form: FormData): Promise<AvatarResult> {
+  const me = await currentProfileId();
+  if (!me || !db) return { ok: false, error: "unauthenticated" };
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "invalid" };
+  if (file.size > AVATAR_MAX_BYTES) return { ok: false, error: "too_big" };
+
+  const webp = await optimizeAvatar(Buffer.from(await file.arrayBuffer()));
+  if (!webp) return { ok: false, error: "invalid" };
+  const url = await storeAvatar(me, webp);
+  if (!url) return { ok: false, error: "unavailable" };
+
+  const previous = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { avatarUrl: true } });
+  const [updated] = await db.update(profiles).set({ avatarUrl: url, avatarOptOut: false }).where(eq(profiles.id, me)).returning();
+  if (!updated) {
+    await deleteAvatar(url);
+    return { ok: false, error: "unauthenticated" };
+  }
+  await deleteAvatar(previous?.avatarUrl);
+  await revalidateEverywhere(me, updated.handle);
+  return { ok: true, profile: toProfile(updated) };
+}
+
+/** Tira a foto (volta para as iniciais) e marca para não importar a do Google/GitHub de novo. */
+export async function removeAvatarAction(): Promise<{ ok: true; profile: Profile } | { ok: false }> {
+  const me = await currentProfileId();
+  if (!me || !db) return { ok: false };
+  const previous = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { avatarUrl: true } });
+  const [updated] = await db.update(profiles).set({ avatarUrl: null, avatarOptOut: true }).where(eq(profiles.id, me)).returning();
+  if (!updated) return { ok: false };
+  await deleteAvatar(previous?.avatarUrl);
+  await revalidateEverywhere(me, updated.handle);
+  return { ok: true, profile: toProfile(updated) };
+}
+
+// ------------------------------------------------------------
 // Excluir conta (LGPD, art. 18, VI)
 // ------------------------------------------------------------
 
@@ -171,11 +218,12 @@ export async function updateSocialsAction(
 export async function deleteAccountAction(confirmHandle: string): Promise<{ ok: boolean }> {
   const me = await currentProfileId();
   if (!me || !db) return { ok: false };
-  const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { handle: true } });
+  const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { handle: true, avatarUrl: true } });
   if (!profile || confirmHandle.trim().replace(/^@/, "") !== profile.handle) return { ok: false };
 
   const books = await db.select({ id: entries.bookId }).from(entries).where(eq(entries.userId, me)).limit(500);
   await db.delete(profiles).where(and(eq(profiles.id, me), eq(profiles.handle, profile.handle)));
+  await deleteAvatar(profile.avatarUrl);
 
   revalidatePath(`/u/${profile.handle}`);
   revalidatePath("/");
