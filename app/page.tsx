@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { BOOKS, books } from "@/lib/books";
 import { bookStats, LISTS, REVIEWS } from "@/lib/data/social";
 import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
-import { recentReviews } from "@/lib/db/queries";
+import { countReaders, recentReviews } from "@/lib/db/queries";
 import { formatAverage } from "@/lib/format";
 import { seededRandom } from "@/lib/recommend";
 import { SITE } from "@/lib/site";
@@ -74,7 +74,8 @@ export const revalidate = 300;
 
 export default async function Home() {
   const demo = REVIEWS.map(fromDemo).filter((r): r is ReviewView => r !== null);
-  const reviews = [...(await recentReviews(6)), ...demo].sort(byNewest).slice(0, 6);
+  const [recent, readers] = await Promise.all([recentReviews(6), countReaders()]);
+  const reviews = [...recent, ...demo].sort(byNewest).slice(0, 6);
 
   return (
     <>
@@ -96,6 +97,14 @@ export default async function Home() {
               <ArrowRight data-icon="inline-end" />
             </Button>
           </div>
+          {readers > 0 && (
+            <p className="mt-6 text-sm text-ink-3">
+              <Link href="/leitores" className="hover:text-ink">
+                <span className="tnum font-semibold text-ink">{readers.toLocaleString("pt-BR")}</span>{" "}
+                {readers === 1 ? "leitor já montou a estante" : "leitores já montaram a estante"}
+              </Link>
+            </p>
+          )}
         </div>
 
         <CoverFan initial={initialFan()} catalog={FAN_CATALOG} />

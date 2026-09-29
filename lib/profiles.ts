@@ -2,9 +2,10 @@ import "server-only";
 
 import { books, getSeedBook, type Book } from "@/lib/books";
 import { diaryOf, getUser, LISTS, reviewsBy, type List } from "@/lib/data/social";
-import { fromDemo, type ReviewView } from "@/lib/reviews";
-import { profileByHandle } from "@/lib/db/queries";
+import { profileByHandle, reviewsOf } from "@/lib/db/queries";
 import type { EntryRow } from "@/lib/db/schema";
+import { fromDemo, type ReviewView } from "@/lib/reviews";
+import type { SocialLink } from "@/lib/socials";
 
 export type ProfileBook = Pick<Book, "id" | "title" | "author" | "coverId" | "color" | "year">;
 
@@ -16,6 +17,17 @@ export type DiaryItem = {
   reread: boolean;
 };
 
+/** O que fica atrás do cadeado num perfil privado. */
+export type ProfileContent = {
+  favorites: ProfileBook[];
+  reading: ProfileBook[];
+  diary: DiaryItem[];
+  reviews: ReviewView[];
+  readThisYear: number;
+  /** Livros na estante (lidos + lendo), para o contador do cabeçalho. */
+  shelfCount: number;
+};
+
 /** Perfil pronto para exibir, seja leitor de demonstração ou conta real. */
 export type ProfileView = {
   handle: string;
@@ -23,17 +35,55 @@ export type ProfileView = {
   bio: string;
   tone: string;
   goal: number;
-  favorites: ProfileBook[];
-  reading: ProfileBook[];
-  diary: DiaryItem[];
-  reviews: ReviewView[];
   lists: List[];
-  readThisYear: number;
   isDemo: boolean;
+  isPrivate: boolean;
+  founder: boolean;
+  socials: SocialLink[];
   /** Só contas reais têm seguidores; leitores de demonstração não estão no banco. */
   followers: number | null;
   following: number | null;
+  /** null quando o perfil é privado: o conteúdo é pedido pelo navegador, com checagem de acesso. */
+  content: ProfileContent | null;
 };
+
+const toBook = (e: EntryRow): ProfileBook => ({
+  id: e.bookId,
+  title: e.bookTitle,
+  author: e.bookAuthor,
+  coverId: e.bookCoverId,
+  color: e.bookColor,
+  year: e.bookYear,
+});
+
+const dateOf = (e: EntryRow) => e.finishedOn ?? e.updatedAt.toISOString().slice(0, 10);
+
+/** Monta favoritos, lendo agora, diário e reviews a partir da estante de uma conta real. */
+export function buildContent(shelf: EntryRow[], favoriteIds: string[], reviews: ReviewView[]): ProfileContent {
+  const read = shelf.filter((e) => e.status === "lido");
+  const year = String(new Date().getFullYear());
+
+  // Favoritos escolhidos na conta; sem escolha, os lidos com nota mais alta.
+  const byId = new Map(shelf.map((e) => [e.bookId, e]));
+  const chosen = favoriteIds.map((id) => byId.get(id)).filter((e): e is EntryRow => Boolean(e));
+  const favorites = (
+    chosen.length
+      ? chosen
+      : [...read].filter((e) => e.rating !== null).sort((a, b) => Number(b.rating) - Number(a.rating)).slice(0, 4)
+  ).map(toBook);
+
+  const reading = shelf.filter((e) => e.status === "lendo").map(toBook);
+  return {
+    favorites,
+    reading,
+    diary: read
+      .map((e) => ({ book: toBook(e), rating: e.rating === null ? null : Number(e.rating), date: dateOf(e), liked: e.liked, reread: false }))
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    reviews: [...reviews].sort((a, b) => b.date.localeCompare(a.date)),
+    readThisYear: read.filter((e) => dateOf(e).startsWith(year)).length,
+    shelfCount: read.length + reading.length,
+  };
+}
 
 export async function getProfileView(handle: string): Promise<ProfileView | null> {
   const demo = getUser(handle);
@@ -50,45 +100,27 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
       bio: demo.bio,
       tone: demo.tone,
       goal: demo.goal,
-      favorites: books(...demo.favorites),
-      reading: [],
-      diary,
-      reviews: reviewsBy(handle).map(fromDemo).filter((r): r is ReviewView => r !== null),
       lists: LISTS.filter((l) => l.user === handle),
-      // Na demonstração, o total do ano acompanha o calendário: fim de setembro, 3/4 da meta.
-      readThisYear: Math.max(diary.length, Math.round(demo.goal * 0.74)),
       isDemo: true,
+      isPrivate: false,
+      founder: false,
+      socials: [],
       followers: null,
       following: null,
+      content: {
+        favorites: books(...demo.favorites),
+        reading: [],
+        diary,
+        reviews: reviewsBy(handle).map(fromDemo).filter((r): r is ReviewView => r !== null),
+        // Na demonstração, o total do ano acompanha o calendário: fim de setembro, 3/4 da meta.
+        readThisYear: Math.max(diary.length, Math.round(demo.goal * 0.74)),
+        shelfCount: diary.length,
+      },
     };
   }
 
   const p = await profileByHandle(handle);
   if (!p) return null;
-
-  const toBook = (e: EntryRow): ProfileBook => ({
-    id: e.bookId,
-    title: e.bookTitle,
-    author: e.bookAuthor,
-    coverId: e.bookCoverId,
-    color: e.bookColor,
-    year: e.bookYear,
-  });
-
-  const read = p.entries.filter((e) => e.status === "lido");
-  const dateOf = (e: EntryRow) => e.finishedOn ?? e.updatedAt.toISOString().slice(0, 10);
-  const year = String(new Date().getFullYear());
-
-  // Favoritos escolhidos na conta; sem escolha, os lidos com nota mais alta.
-  const byId = new Map(p.entries.map((e) => [e.bookId, e]));
-  const chosen = p.favorites.map((id) => byId.get(id)).filter((e): e is EntryRow => Boolean(e));
-  const favorites = (
-    chosen.length
-      ? chosen
-      : [...read].filter((e) => e.rating !== null).sort((a, b) => Number(b.rating) - Number(a.rating)).slice(0, 4)
-  ).map(toBook);
-
-  const profile = { handle: p.handle, name: p.name, tone: p.tone };
 
   return {
     handle: p.handle,
@@ -96,30 +128,13 @@ export async function getProfileView(handle: string): Promise<ProfileView | null
     bio: p.bio,
     tone: p.tone,
     goal: p.goal,
-    favorites,
-    reading: p.entries.filter((e) => e.status === "lendo").map(toBook),
-    diary: read
-      .map((e) => ({ book: toBook(e), rating: e.rating === null ? null : Number(e.rating), date: dateOf(e), liked: e.liked, reread: false }))
-      .sort((a, b) => b.date.localeCompare(a.date)),
-    reviews: p.entries
-      .filter((e) => e.review)
-      .map((e) => ({
-        id: `${e.userId}:${e.bookId}`,
-        user: profile,
-        book: toBook(e),
-        rating: e.rating === null ? null : Number(e.rating),
-        text: e.review,
-        date: dateOf(e),
-        likes: null,
-        liked: e.liked,
-        reread: false,
-        spoiler: false,
-      }))
-      .sort((a, b) => b.date.localeCompare(a.date)),
     lists: [],
-    readThisYear: read.filter((e) => dateOf(e).startsWith(year)).length,
     isDemo: false,
+    isPrivate: p.isPrivate,
+    founder: p.founder,
+    socials: p.socials,
     followers: p.followers,
     following: p.following,
+    content: p.isPrivate ? null : buildContent(p.entries, p.favorites, await reviewsOf(p.id)),
   };
 }

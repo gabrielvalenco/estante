@@ -1,7 +1,8 @@
-import { Heart, RotateCcw } from "lucide-react";
+import { Crown, Heart, RotateCcw } from "lucide-react";
 import Link from "next/link";
 
 import { BookCover } from "@/components/book-cover";
+import { ReviewReactions } from "@/components/review-reactions";
 import { SpoilerText } from "@/components/spoiler-text";
 import { Stars } from "@/components/stars";
 import { UserAvatar } from "@/components/user-avatar";
@@ -33,6 +34,7 @@ export function ReviewCard({ review, withBook = false, className }: { review: Re
           <Link href={`/u/${user.handle}`} className="font-medium text-ink-2 hover:text-ink">
             {user.name}
           </Link>
+          {user.founder && <Crown className="size-3.5 text-ambar-ink" aria-label="Fundador" />}
           {review.rating && <Stars value={review.rating} size={13} />}
           {review.liked && <Heart className="size-3.5 fill-ameixa text-ameixa" aria-label="Curtiu" />}
           {review.reread && <RotateCcw className="size-3.5 text-ink-4" aria-label="Releitura" />}
@@ -42,6 +44,9 @@ export function ReviewCard({ review, withBook = false, className }: { review: Re
         <div className="mt-2 text-[0.9375rem] leading-relaxed break-words whitespace-pre-line text-ink-2">
           {review.spoiler ? <SpoilerText text={review.text} /> : <p>{review.text}</p>}
         </div>
+        {review.reactions && (
+          <ReviewReactions handle={user.handle} bookId={book.id} likes={review.reactions.likes} dislikes={review.reactions.dislikes} />
+        )}
         {review.likes !== null && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-4">
             <Heart className="size-3.5" aria-hidden />

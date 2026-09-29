@@ -6,6 +6,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { AccountMenu } from "@/components/account-menu";
+import { NotificationsBell } from "@/components/notifications";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/brand";
 import { SearchCombobox } from "@/components/search-combobox";
 import { cn } from "@/lib/utils";
@@ -66,7 +68,7 @@ export function SiteHeader() {
           })}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <Suspense fallback={<div className="hidden h-9 w-64 sm:block" />}>
             <HeaderSearch />
           </Suspense>
@@ -98,6 +100,8 @@ export function SiteHeader() {
               </span>
             )}
           </Link>
+          <ThemeToggle />
+          <NotificationsBell />
           <AccountMenu />
         </div>
       </div>

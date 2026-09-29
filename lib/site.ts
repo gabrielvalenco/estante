@@ -7,4 +7,12 @@ export const SITE = {
   repo: "https://github.com/gabrielvalenco/estante",
   /** Leitor de exemplo que representa "você" nas telas de demonstração. */
   demoUser: "marina",
+  /**
+   * Controlador dos dados e canal de contato da LGPD (política de privacidade).
+   * Ficam em variáveis de ambiente para não gravar dados pessoais no código.
+   */
+  controller: process.env.NEXT_PUBLIC_CONTROLLER_NAME || "o responsável pelo projeto Estante",
+  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || null,
+  /** Data da versão atual da política e dos termos. */
+  legalUpdatedAt: "2026-09-29",
 } as const;

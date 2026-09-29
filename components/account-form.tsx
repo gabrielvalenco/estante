@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import { updateProfileAction } from "@/app/actions";
+import { BlockedSection, DataSection, PasswordSection, PrivacySection, SocialsSection } from "@/components/account-sections";
 import { BookCover } from "@/components/book-cover";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -42,7 +43,16 @@ export function AccountForm() {
     return <p className="text-ink-3">Contas estão desativadas nesta versão de demonstração.</p>;
   }
   if (auth.status !== "user") return <FormSkeleton />;
-  return <Form key={auth.profile.id} profile={auth.profile} />;
+  return (
+    <>
+      <Form key={auth.profile.id} profile={auth.profile} />
+      <PrivacySection profile={auth.profile} />
+      <SocialsSection profile={auth.profile} />
+      {auth.hasPassword && <PasswordSection />}
+      <BlockedSection />
+      <DataSection handle={auth.profile.handle} />
+    </>
+  );
 }
 
 function Form({ profile }: { profile: Profile }) {
@@ -97,6 +107,7 @@ function Form({ profile }: { profile: Profile }) {
 
     if (!result.ok) {
       if (result.error === "handle_taken") setErrors({ handle: "Esse @ já é de outra pessoa." });
+      else if (result.error === "name_taken") setErrors({ name: "Já existe alguém com esse nome. Que tal um sobrenome ou apelido?" });
       else if (result.error === "handle_unavailable") setErrors({ handle: "Esse @ não está disponível." });
       else toast.error("Não foi possível salvar", { description: "Tente de novo em instantes." });
       return;

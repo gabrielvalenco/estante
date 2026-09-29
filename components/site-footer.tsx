@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { Mark } from "@/components/brand";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { SITE } from "@/lib/site";
 
 export function SiteFooter() {
@@ -10,22 +9,22 @@ export function SiteFooter() {
       <div className="container-page flex flex-col gap-4 py-8 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Mark size={18} />
-          <span>
-            {SITE.name} é um projeto de portfólio. Leitores e reviews são fictícios.
-          </span>
+          <span>{SITE.name}. Os leitores de demonstração são fictícios.</span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <nav aria-label="Rodapé" className="flex flex-wrap items-center gap-x-5 gap-y-3">
+          <Link href="/privacidade" className="text-ink-2 underline-offset-4 hover:underline">
+            Privacidade
+          </Link>
+          <Link href="/termos" className="text-ink-2 underline-offset-4 hover:underline">
+            Termos de uso
+          </Link>
           <span>
             Dados e capas da{" "}
             <a href="https://openlibrary.org" className="text-ink-2 underline-offset-4 hover:underline" target="_blank" rel="noreferrer">
               Open Library
             </a>
           </span>
-          <Link href={SITE.repo} className="text-ink-2 underline-offset-4 hover:underline" target="_blank" rel="noreferrer">
-            Código no GitHub
-          </Link>
-          <ThemeToggle />
-        </div>
+        </nav>
       </div>
     </footer>
   );

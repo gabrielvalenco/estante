@@ -11,7 +11,7 @@ export function LikeButton({ liked, onToggle }: { liked: boolean; onToggle: () =
       type="button"
       onClick={onToggle}
       aria-pressed={liked}
-      aria-label={liked ? "Descurtir" : "Curtir"}
+      aria-label={liked ? "Descurtir o livro" : "Curtir o livro"}
       className={cn(
         "inline-flex size-12 items-center justify-center rounded-full transition-colors",
         liked ? "bg-ameixa-soft text-ameixa" : "bg-sunken text-ink-3 hover:text-ink-2",

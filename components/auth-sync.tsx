@@ -61,7 +61,14 @@ function SessionSync() {
         disconnectAccount();
         return;
       }
-      setAuth({ status: "user", profile: account.profile, following: account.following });
+      setAuth({
+        status: "user",
+        profile: account.profile,
+        following: account.following,
+        requested: account.requested,
+        blocked: account.blocked,
+        hasPassword: account.hasPassword,
+      });
       await connectAccount(account.shelf);
     });
     return () => {

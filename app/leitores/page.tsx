@@ -7,20 +7,34 @@ import { UserAvatar } from "@/components/user-avatar";
 import { books } from "@/lib/books";
 import { reviewsBy, USERS } from "@/lib/data/social";
 import { plural } from "@/lib/format";
-import { recentReaders } from "@/lib/db/queries";
+import { countReaders, recentReaders } from "@/lib/db/queries";
+import { SuggestedReaders } from "@/components/suggested-readers";
 
 export const metadata: Metadata = { title: "Leitores" };
 export const revalidate = 300;
 
 export default async function ReadersPage() {
-  const real = await recentReaders(6);
+  const [real, total] = await Promise.all([recentReaders(6), countReaders()]);
 
   return (
     <div className="container-page animate-fade-up pt-10 sm:pt-14">
-      <h1 className="text-title font-semibold text-ink">Leitores</h1>
-      <p className="mt-2 max-w-lg text-ink-3">Gente para seguir. Os quatro favoritos dizem muito sobre alguém.</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-title font-semibold text-ink">Leitores</h1>
+          <p className="mt-2 max-w-lg text-ink-3">Gente para seguir. Os quatro favoritos dizem muito sobre alguém.</p>
+        </div>
+        {total > 0 && (
+          <p className="rounded-2xl bg-anil-soft px-4 py-3 text-sm text-ink-2">
+            <span className="tnum block text-2xl font-semibold tracking-tight text-anil">{total.toLocaleString("pt-BR")}</span>
+            {total === 1 ? "leitor cadastrado" : "leitores cadastrados"}
+          </p>
+        )}
+      </div>
 
-      <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <SuggestedReaders className="mt-12" />
+
+      <h2 className="mt-16 text-section font-semibold text-ink">Leitores de demonstração</h2>
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {USERS.map((u) => (
           <li key={u.handle} className="group relative rounded-3xl border border-line bg-surface p-5 transition-[border-color,translate] duration-300 hover:-translate-y-0.5 hover:border-line-strong">
             <div className="flex items-center gap-3">

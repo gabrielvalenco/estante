@@ -4,9 +4,10 @@ import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { auth } from "@/auth";
 import { db } from "@/lib/db";
-import { entries, follows, profiles, RESERVED_HANDLES } from "@/lib/db/schema";
+import { blocks, entries, followRequests, follows, passwordLogins, profiles, RESERVED_HANDLES } from "@/lib/db/schema";
+import { notify, relationship, unnotify } from "@/lib/db/social";
+import { currentProfileId } from "@/lib/session";
 import { toProfile, type FeedItem, type Profile, type ShelfEntry } from "@/lib/db/types";
 import type { FollowedPick } from "@/lib/recommend";
 
@@ -17,11 +18,6 @@ import type { FollowedPick } from "@/lib/recommend";
  * Server actions são endpoints públicos: estas duas regras são o que impede alguém
  * de escrever na estante de outra pessoa.
  */
-
-async function currentProfileId(): Promise<string | null> {
-  const session = await auth();
-  return session?.user?.id ?? null;
-}
 
 // ------------------------------------------------------------
 // Validação
@@ -80,8 +76,19 @@ const isEmpty = (e: z.output<typeof Entry>) => !e.status && !e.rating && !e.like
 // Conta
 // ------------------------------------------------------------
 
-/** Perfil, estante e quem a pessoa segue (handles), ou null se não houver sessão. */
-export async function getMyAccount(): Promise<{ profile: Profile; shelf: ShelfEntry[]; following: string[] } | null> {
+export type MyAccount = {
+  profile: Profile;
+  shelf: ShelfEntry[];
+  /** Handles de quem a pessoa segue, pediu para seguir e bloqueou. */
+  following: string[];
+  requested: string[];
+  blocked: string[];
+  /** Tem login por e-mail e senha (mostra "Mudar senha"). */
+  hasPassword: boolean;
+};
+
+/** Tudo que o navegador precisa saber sobre quem está logado, ou null se não houver sessão. */
+export async function getMyAccount(): Promise<MyAccount | null> {
   const id = await currentProfileId();
   if (!id || !db) return null;
   const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, id) });
@@ -90,12 +97,24 @@ export async function getMyAccount(): Promise<{ profile: Profile; shelf: ShelfEn
     where: eq(entries.userId, id),
     orderBy: (e, { desc }) => desc(e.updatedAt),
   });
-  const followed = await db
-    .select({ handle: profiles.handle })
-    .from(follows)
-    .innerJoin(profiles, eq(follows.followingId, profiles.id))
-    .where(eq(follows.followerId, id));
-  return { profile: toProfile(profile), shelf: rows.map(toShelfEntry), following: followed.map((f) => f.handle) };
+  const [followed, requested, blocked, password] = await Promise.all([
+    db.select({ handle: profiles.handle }).from(follows).innerJoin(profiles, eq(follows.followingId, profiles.id)).where(eq(follows.followerId, id)),
+    db
+      .select({ handle: profiles.handle })
+      .from(followRequests)
+      .innerJoin(profiles, eq(followRequests.targetId, profiles.id))
+      .where(eq(followRequests.requesterId, id)),
+    db.select({ handle: profiles.handle }).from(blocks).innerJoin(profiles, eq(blocks.blockedId, profiles.id)).where(eq(blocks.blockerId, id)),
+    db.select({ email: passwordLogins.email }).from(passwordLogins).where(eq(passwordLogins.profileId, id)).limit(1),
+  ]);
+  return {
+    profile: toProfile(profile),
+    shelf: rows.map(toShelfEntry),
+    following: followed.map((f) => f.handle),
+    requested: requested.map((r) => r.handle),
+    blocked: blocked.map((b) => b.handle),
+    hasPassword: password.length > 0,
+  };
 }
 
 function toShelfEntry(r: typeof entries.$inferSelect): ShelfEntry {
@@ -131,6 +150,10 @@ export async function saveEntryAction(input: EntryInput): Promise<Result> {
   const parsed = Entry.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
   const e = parsed.data;
+  const before = await db.query.entries.findFirst({
+    where: and(eq(entries.userId, id), eq(entries.bookId, e.book.id)),
+    columns: { status: true },
+  });
 
   try {
     if (isEmpty(e)) {
@@ -146,8 +169,21 @@ export async function saveEntryAction(input: EntryInput): Promise<Result> {
     return { ok: false, error: "unavailable" };
   }
 
+  if (e.status === "lido" && before?.status !== "lido") await notifyFriendsWhoWantIt(id, e.book.id, e.book.title);
   await revalidateAfterShelfChange(id, e.book.id);
   return { ok: true };
+}
+
+/** Terminou um livro: avisa quem segue a pessoa e tem esse livro em "Quero ler". */
+async function notifyFriendsWhoWantIt(profileId: string, bookId: string, bookTitle: string) {
+  if (!db) return;
+  const wanting = await db
+    .select({ id: entries.userId })
+    .from(entries)
+    .innerJoin(follows, and(eq(follows.followerId, entries.userId), eq(follows.followingId, profileId)))
+    .where(and(eq(entries.bookId, bookId), eq(entries.status, "quero-ler")))
+    .limit(200);
+  await Promise.all(wanting.map((w) => notify({ recipientId: w.id, actorId: profileId, type: "friend_finished", bookId, bookTitle })));
 }
 
 /**
@@ -207,7 +243,10 @@ export type ProfileDraftInput = z.input<typeof ProfileDraft>;
 
 export async function updateProfileAction(
   input: ProfileDraftInput,
-): Promise<{ ok: true; profile: Profile } | { ok: false; error: "unauthenticated" | "invalid" | "handle_taken" | "handle_unavailable" | "unavailable" }> {
+): Promise<
+  | { ok: true; profile: Profile }
+  | { ok: false; error: "unauthenticated" | "invalid" | "handle_taken" | "handle_unavailable" | "name_taken" | "unavailable" }
+> {
   const id = await currentProfileId();
   if (!id || !db) return { ok: false, error: "unauthenticated" };
 
@@ -225,8 +264,9 @@ export async function updateProfileAction(
     revalidatePath("/leitores");
     return { ok: true, profile: toProfile(updated) };
   } catch (err) {
-    const code = (err as { cause?: { code?: string }; code?: string }).cause?.code ?? (err as { code?: string }).code;
-    if (code === "23505") return { ok: false, error: "handle_taken" };
+    const cause = (err as { cause?: { code?: string; constraint_name?: string } }).cause;
+    const code = cause?.code ?? (err as { code?: string }).code;
+    if (code === "23505") return { ok: false, error: cause?.constraint_name === "profiles_name_unique" ? "name_taken" : "handle_taken" };
     if (code === "23514") return { ok: false, error: "handle_unavailable" };
     return { ok: false, error: "unavailable" };
   }
@@ -238,25 +278,50 @@ export async function updateProfileAction(
 
 const Handle = z.string().regex(/^[a-z0-9_]{3,20}$/);
 
-/** Segue (ou deixa de seguir) alguém pelo @. Seguir a si mesmo é recusado aqui e no banco. */
+/**
+ * Segue (ou deixa de seguir) alguém pelo @. Perfil privado recebe um pedido em vez de um follow.
+ * Deixar de seguir também cancela um pedido pendente. Bloqueio em qualquer direção impede seguir.
+ */
 export async function setFollowAction(
   handle: string,
   follow: boolean,
-): Promise<{ ok: true } | { ok: false; error: "unauthenticated" | "not_found" | "self" | "unavailable" }> {
+): Promise<
+  | { ok: true; state: "following" | "requested" | "none" }
+  | { ok: false; error: "unauthenticated" | "not_found" | "self" | "blocked" | "unavailable" }
+> {
   const me = await currentProfileId();
   if (!me || !db) return { ok: false, error: "unauthenticated" };
   const parsed = Handle.safeParse(handle);
   if (!parsed.success) return { ok: false, error: "not_found" };
 
-  const target = await db.query.profiles.findFirst({ where: eq(profiles.handle, parsed.data), columns: { id: true } });
+  const target = await db.query.profiles.findFirst({
+    where: eq(profiles.handle, parsed.data),
+    columns: { id: true, isPrivate: true },
+  });
   if (!target) return { ok: false, error: "not_found" };
   if (target.id === me) return { ok: false, error: "self" };
 
+  let state: "following" | "requested" | "none" = "none";
   try {
     if (follow) {
-      await db.insert(follows).values({ followerId: me, followingId: target.id }).onConflictDoNothing();
+      const rel = await relationship(me, target.id);
+      if (rel.blocking || rel.blockedBy) return { ok: false, error: "blocked" };
+      if (rel.following) {
+        state = "following";
+      } else if (target.isPrivate) {
+        await db.insert(followRequests).values({ requesterId: me, targetId: target.id }).onConflictDoNothing();
+        await notify({ recipientId: target.id, actorId: me, type: "follow_request" });
+        state = "requested";
+      } else {
+        await db.insert(follows).values({ followerId: me, followingId: target.id }).onConflictDoNothing();
+        await notify({ recipientId: target.id, actorId: me, type: "follow" });
+        state = "following";
+      }
     } else {
       await db.delete(follows).where(and(eq(follows.followerId, me), eq(follows.followingId, target.id)));
+      await db.delete(followRequests).where(and(eq(followRequests.requesterId, me), eq(followRequests.targetId, target.id)));
+      await unnotify({ recipientId: target.id, actorId: me, type: "follow" });
+      await unnotify({ recipientId: target.id, actorId: me, type: "follow_request" });
     }
   } catch {
     return { ok: false, error: "unavailable" };
@@ -266,7 +331,7 @@ export async function setFollowAction(
   revalidatePath(`/u/${parsed.data}`);
   const mine = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { handle: true } });
   if (mine) revalidatePath(`/u/${mine.handle}`);
-  return { ok: true };
+  return { ok: true, state };
 }
 
 /** Atividade recente de quem a pessoa segue: leituras, notas e reviews, das mais novas para as mais antigas. */

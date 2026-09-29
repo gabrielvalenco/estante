@@ -1,11 +1,14 @@
-import { Search, SearchX, WifiOff } from "lucide-react";
+import { Crown, Lock, Search, SearchX, WifiOff } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
 import { BookGrid } from "@/components/book-grid";
+import { FollowButton } from "@/components/follow-button";
 import { SearchCombobox } from "@/components/search-combobox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { UserAvatar } from "@/components/user-avatar";
+import { searchReaders } from "@/lib/db/queries";
 import { plural } from "@/lib/format";
 import { searchBooks } from "@/lib/openlibrary";
 
@@ -50,10 +53,15 @@ export default async function SearchPage({ searchParams }: Props) {
 }
 
 async function Results({ q }: { q: string }) {
+  const readers = await searchReaders(q, 12);
   let results;
   try {
     results = await searchBooks(q);
   } catch {
+    results = null;
+  }
+
+  if (!readers.length && results === null) {
     return (
       <EmptyState icon={WifiOff} title="A Open Library não respondeu">
         A busca depende de um serviço externo que está fora do ar ou lento agora. Tente de novo em alguns segundos.
@@ -61,21 +69,49 @@ async function Results({ q }: { q: string }) {
     );
   }
 
-  if (!results.length) {
+  if (!readers.length && !results?.length) {
     return (
       <EmptyState icon={SearchX} title={`Nada encontrado para "${q}"`}>
-        Confira a grafia ou tente só o sobrenome do autor.
+        Confira a grafia ou tente só o sobrenome do autor. Para leitores, busque pelo @.
       </EmptyState>
     );
   }
 
   return (
-    <section className="mt-10" aria-live="polite">
-      <p className="mb-6 text-sm text-ink-3">
-        {plural(results.length, "resultado", "resultados")} para <span className="font-medium text-ink">&ldquo;{q}&rdquo;</span>
-      </p>
-      <BookGrid books={results} />
-    </section>
+    <div aria-live="polite">
+      {readers.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-4 text-xs font-semibold tracking-wide text-ink-3 uppercase">Leitores</h2>
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {readers.map((r) => (
+              <li key={r.handle} className="relative flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 transition-colors hover:border-line-strong">
+                <UserAvatar user={r} size={44} href={false} />
+                <div className="min-w-0 flex-1">
+                  <Link href={`/u/${r.handle}`} className="flex items-center gap-1.5 font-semibold tracking-tight text-ink after:absolute after:inset-0">
+                    <span className="truncate">{r.name}</span>
+                    {r.founder && <Crown className="size-3.5 shrink-0 text-ambar-ink" aria-label="Fundador" />}
+                    {r.isPrivate && <Lock className="size-3 shrink-0 text-ink-4" aria-label="Perfil privado" />}
+                  </Link>
+                  <p className="truncate text-[0.8125rem] text-ink-3">@{r.handle}</p>
+                </div>
+                <FollowButton handle={r.handle} isPrivate={r.isPrivate} size="sm" />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {results === null ? (
+        <p className="mt-10 text-sm text-ink-3">A busca de livros está fora do ar agora. Tente de novo em alguns segundos.</p>
+      ) : results.length > 0 ? (
+        <section className="mt-10">
+          <p className="mb-6 text-sm text-ink-3">
+            {plural(results.length, "livro", "livros")} para <span className="font-medium text-ink">&ldquo;{q}&rdquo;</span>
+          </p>
+          <BookGrid books={results} />
+        </section>
+      ) : null}
+    </div>
   );
 }
 

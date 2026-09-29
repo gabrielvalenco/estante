@@ -8,6 +8,7 @@ import { getFollowingFeed } from "@/app/actions";
 import { BookCover } from "@/components/book-cover";
 import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
+import { SuggestedReaders } from "@/components/suggested-readers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth, useAuthFlags } from "@/lib/auth";
@@ -55,12 +56,15 @@ export function FollowingFeed() {
   }
   if (!auth.following.length) {
     return (
+      <>
       <Empty
         title="Você ainda não segue ninguém"
         action={<Button size="lg" render={<Link href="/leitores" />} nativeButton={false}>Encontrar leitores</Button>}
       >
         Siga pessoas pelo perfil delas. O que elas lerem aparece aqui.
       </Empty>
+      <SuggestedReaders className="mx-auto max-w-5xl" />
+      </>
     );
   }
   if (!items) return <FeedSkeleton />;

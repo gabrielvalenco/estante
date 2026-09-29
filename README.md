@@ -13,6 +13,13 @@ escreva reviews curtas e descubra livros pelas listas de outros leitores.
 - **Página de cada livro tingida com a cor da capa**, com média, distribuição das notas e reviews.
 - **Perfis** com os 4 favoritos, meta de leitura do ano e diário mês a mês.
 - **Modo escuro** que segue o sistema, com seletor no rodapé.
+- **Rede social de leitura:** seguir leitores, feed de quem você segue, curtir ou não curtir reviews,
+  notificações (novos seguidores, pedidos, curtidas e quando alguém que você segue termina um livro da sua lista),
+  sugestões de leitores por gosto em comum e amigos de amigos, busca por @ ou nome.
+- **Privacidade:** perfil privado com pedidos para seguir, bloqueio, e direitos da LGPD dentro do app
+  (baixar os dados em JSON e excluir a conta). Política de privacidade e termos de uso em [/privacidade](app/privacidade/page.tsx).
+- **Perfil:** nome e @ únicos, até 3 redes sociais montadas pelo app (sem link livre) com selo de verificado no
+  GitHub e no Bluesky quando o perfil aponta de volta para a Estante.
 - **Listas** curadas e página de explorar com filtro por gênero e ordenação.
 
 ## Três cores, uma estante

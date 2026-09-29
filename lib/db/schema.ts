@@ -3,15 +3,22 @@ import {
   boolean,
   check,
   date,
+  foreignKey,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
+  unique,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+import type { SocialLink } from "@/lib/socials";
 
 /**
  * Schema da Estante. Fonte de verdade para as migrações em /drizzle.
@@ -37,6 +44,12 @@ export const profiles = pgTable(
     tone: text("tone").notNull().default("anil"),
     goal: integer("goal").notNull().default(24),
     favorites: text("favorites").array().notNull().default(sql`'{}'::text[]`),
+    /** Perfil privado: seguir vira pedido, e só seguidores aprovados veem estante, diário e reviews. */
+    isPrivate: boolean("is_private").notNull().default(false),
+    /** Selo de fundador. Só a migração define; nenhuma action altera. */
+    founder: boolean("founder").notNull().default(false),
+    /** Até 3 redes sociais: plataforma + @ (a URL é montada pelo app, nunca digitada). */
+    socials: jsonb("socials").$type<SocialLink[]>().notNull().default(sql`'[]'::jsonb`),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -50,6 +63,9 @@ export const profiles = pgTable(
     check("profiles_tone", sql`${t.tone} in ('anil', 'ameixa', 'musgo', 'ambar')`),
     check("profiles_goal", sql`${t.goal} between 1 and 365`),
     check("profiles_favorites", sql`cardinality(${t.favorites}) <= 4`),
+    check("profiles_socials", sql`jsonb_typeof(${t.socials}) = 'array' and jsonb_array_length(${t.socials}) <= 3`),
+    // Nome de exibição único, sem diferenciar maiúsculas.
+    uniqueIndex("profiles_name_unique").on(sql`lower(${t.name})`),
   ],
 );
 
@@ -134,6 +150,85 @@ export const follows = pgTable(
     // Para "quem segue esta pessoa" (contagem de seguidores).
     index("follows_following_idx").on(t.followingId),
     check("follows_not_self", sql`${t.followerId} <> ${t.followingId}`),
+  ],
+);
+
+/** Pedidos para seguir perfis privados. Aprovado, vira linha em `follows` e sai daqui. */
+export const followRequests = pgTable(
+  "follow_requests",
+  {
+    requesterId: uuid("requester_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    targetId: uuid("target_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.requesterId, t.targetId] }),
+    index("follow_requests_target_idx").on(t.targetId),
+    check("follow_requests_not_self", sql`${t.requesterId} <> ${t.targetId}`),
+  ],
+);
+
+/** Bloqueios. Quem bloqueia deixa de seguir e ser seguido, e o bloqueado não interage mais. */
+export const blocks = pgTable(
+  "blocks",
+  {
+    blockerId: uuid("blocker_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    blockedId: uuid("blocked_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.blockerId, t.blockedId] }),
+    index("blocks_blocked_idx").on(t.blockedId),
+    check("blocks_not_self", sql`${t.blockerId} <> ${t.blockedId}`),
+  ],
+);
+
+/**
+ * Curtir (+1) ou não curtir (-1) a review de alguém. A review é o registro (autor, livro) em entries:
+ * se a review for apagada, as reações vão junto.
+ */
+export const reviewReactions = pgTable(
+  "review_reactions",
+  {
+    userId: uuid("user_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    reviewUserId: uuid("review_user_id").notNull(),
+    bookId: text("book_id").notNull(),
+    value: smallint("value").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.reviewUserId, t.bookId] }),
+    foreignKey({ columns: [t.reviewUserId, t.bookId], foreignColumns: [entries.userId, entries.bookId] }).onDelete("cascade"),
+    index("review_reactions_review_idx").on(t.reviewUserId, t.bookId),
+    check("review_reactions_value", sql`${t.value} in (-1, 1)`),
+    check("review_reactions_not_self", sql`${t.userId} <> ${t.reviewUserId}`),
+  ],
+);
+
+export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished"] as const;
+export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
+
+/**
+ * Notificações. Uma por (destinatário, autor, tipo, livro): curtir e descurtir várias vezes
+ * não empilha avisos, só atualiza o horário.
+ */
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipientId: uuid("recipient_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    actorId: uuid("actor_id").notNull().references(() => profiles.id, { onDelete: "cascade" }),
+    type: text("type", { enum: NOTIFICATION_TYPES }).notNull(),
+    bookId: text("book_id"),
+    bookTitle: text("book_title"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    readAt: timestamp("read_at", { withTimezone: true }),
+  },
+  (t) => [
+    unique("notifications_dedupe").on(t.recipientId, t.actorId, t.type, t.bookId).nullsNotDistinct(),
+    index("notifications_recipient_idx").on(t.recipientId, t.createdAt.desc()),
+    check("notifications_type", sql.raw(`type in (${NOTIFICATION_TYPES.map((n) => `'${n}'`).join(", ")})`)),
+    check("notifications_not_self", sql`${t.recipientId} <> ${t.actorId}`),
   ],
 );
 

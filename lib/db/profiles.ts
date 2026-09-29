@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { profiles, RESERVED_HANDLES, type ProfileRow } from "@/lib/db/schema";
@@ -36,18 +36,21 @@ export async function ensureProfile({
 
   const base = baseHandle(login);
   const reserved = new Set<string>(RESERVED_HANDLES);
+  const baseName = name.trim().slice(0, 55) || "Leitor";
 
-  for (let attempt = 0; attempt < 8; attempt++) {
+  for (let attempt = 0; attempt < 12; attempt++) {
     const handle = attempt === 0 && !reserved.has(base) ? base : `${base}${Math.floor(1000 + Math.random() * 9000)}`;
+    // Nome também é único: se já existe, "Ana Souza" vira "Ana Souza 2", "Ana Souza 3"... (dá para trocar depois).
+    const suffix = await nameSuffix(baseName);
     const [created] = await db
       .insert(profiles)
       .values({
         providerId,
         handle,
-        name: name.trim().slice(0, 60) || "Leitor",
+        name: suffix ? `${baseName} ${suffix}` : baseName,
         tone: TONES[Math.floor(Math.random() * TONES.length)],
       })
-      // Conflito de @ (ou do mesmo provedor em duas abas ao mesmo tempo): tenta de novo.
+      // Conflito de @, de nome (duas contas criadas juntas) ou do mesmo provedor em duas abas: tenta de novo.
       .onConflictDoNothing()
       .returning();
     if (created) return created;
@@ -56,4 +59,15 @@ export async function ensureProfile({
     if (raced) return raced;
   }
   throw new Error("Não foi possível criar o perfil");
+}
+
+/** Menor número que deixa o nome livre (0 = o nome já está livre). Compara sem maiúsculas, como o índice. */
+async function nameSuffix(name: string) {
+  const taken = await db!
+    .select({ name: profiles.name })
+    .from(profiles)
+    .where(sql`lower(${profiles.name}) = lower(${name}) or lower(${profiles.name}) like lower(${name}) || ' %'`);
+  const used = new Set(taken.map((t) => t.name.toLowerCase()));
+  if (!used.has(name.toLowerCase())) return 0;
+  for (let n = 2; ; n++) if (!used.has(`${name} ${n}`.toLowerCase())) return n;
 }
