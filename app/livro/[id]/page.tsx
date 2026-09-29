@@ -7,6 +7,7 @@ import { BookActions } from "@/components/book-actions";
 import { BuyButton } from "@/components/buy-button";
 import { BookCover } from "@/components/book-cover";
 import { ListCard } from "@/components/list-card";
+import { ReadingTools } from "@/components/reading-tools";
 import { ReviewCard } from "@/components/review-card";
 import { SectionHeader } from "@/components/shelf";
 import { Stars } from "@/components/stars";
@@ -120,6 +121,12 @@ export default async function BookPage({ params }: Props) {
             </section>
           )}
         </div>
+
+        {/* Marcador, citações e notas (privados, carregados no navegador) */}
+        <section className="mt-12 max-w-3xl lg:ml-[280px]">
+          <SectionHeader title="Sua leitura" eyebrow="Só você vê" />
+          <ReadingTools book={book} />
+        </section>
 
         {/* Reviews */}
         <section className="mt-16 max-w-3xl lg:ml-[280px]">

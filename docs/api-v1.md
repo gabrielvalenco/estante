@@ -42,6 +42,15 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | GET | `/notifications` | sim | `{ items, unread }` |
 | POST | `/notifications/read` | sim | Marca todas como lidas |
 | POST | `/requests/:handle` | sim | `{ accept: boolean }`: aceita ou recusa um pedido para seguir |
+| GET | `/reading/:bookId` | sim | `{ progress, annotations, usage }`: marcador, citações e notas do livro |
+| PUT | `/reading/:bookId` | sim | `{ page, totalPages }` salva o marcador; página 0 sem total apaga |
+| GET | `/annotations?kind=` | sim | `{ annotations, usage, progress }`; `kind`: `quote` ou `note` (opcional) |
+| POST | `/annotations` | sim | `{ book, kind, text, comment?, page? }` → 201; passou do limite do plano: 402 com `usage` |
+| PATCH | `/annotations/:id` | sim | `{ text?, comment?, page? }` |
+| DELETE | `/annotations/:id` | sim | Exclui a anotação |
 
 Valores de `status`: `quero-ler`, `lendo`, `lido` ou `null`. `rating`: 0.5 a 5, de meia em meia, ou `null`.
+Anotações e marcadores são privados: cada token só enxerga os da própria conta.
+Limites do plano Brochura (grátis): 20 citações no total e 3 notas por livro (`lib/plans.ts`).
+
 `finishedOn`: `AAAA-MM-DD`. Capas: `https://covers.openlibrary.org/b/id/<coverId>-M.jpg` (S, M ou L).

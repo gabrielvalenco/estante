@@ -238,6 +238,75 @@ export const notifications = pgTable(
   ],
 );
 
+/**
+ * Marcador de página: onde a pessoa está em cada livro. Separado de `entries` para
+ * atualizar a página (coisa frequente) sem mexer no registro da estante. Sempre privado.
+ */
+export const readingProgress = pgTable(
+  "reading_progress",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    bookId: text("book_id").notNull(),
+    page: integer("page").notNull(),
+    /** Páginas da edição que a pessoa lê (a da Open Library nem sempre bate). */
+    totalPages: integer("total_pages"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.bookId] }),
+    check("reading_progress_book_id", sql`${t.bookId} ~ '^OL[0-9]+W$'`),
+    check("reading_progress_page", sql`${t.page} between 0 and 100000`),
+    check("reading_progress_total", sql`${t.totalPages} is null or (${t.totalPages} between 1 and 100000 and ${t.page} <= ${t.totalPages})`),
+  ],
+);
+
+export const ANNOTATION_KINDS = ["quote", "note"] as const;
+export type AnnotationKind = (typeof ANNOTATION_KINDS)[number];
+
+/**
+ * Citações (trechos do livro) e notas (o que a pessoa pensou). Privadas: só a dona lê.
+ * Guardam uma cópia do livro, como `entries`, para listar tudo sem depender da estante.
+ */
+export const annotations = pgTable(
+  "annotations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    bookId: text("book_id").notNull(),
+    bookTitle: text("book_title").notNull(),
+    bookAuthor: text("book_author").notNull(),
+    bookCoverId: integer("book_cover_id"),
+    bookColor: text("book_color").notNull(),
+    kind: text("kind", { enum: ANNOTATION_KINDS }).notNull(),
+    /** O trecho (citação) ou o texto da nota. */
+    text: text("text").notNull(),
+    /** Comentário da pessoa sobre a citação. Notas não usam. */
+    comment: text("comment").notNull().default(""),
+    page: integer("page"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("annotations_user_book_idx").on(t.userId, t.bookId, t.createdAt.desc()),
+    index("annotations_user_kind_idx").on(t.userId, t.kind, t.createdAt.desc()),
+    check("annotations_book_id", sql`${t.bookId} ~ '^OL[0-9]+W$'`),
+    check("annotations_book_title", sql`char_length(${t.bookTitle}) between 1 and 300`),
+    check("annotations_book_author", sql`char_length(${t.bookAuthor}) <= 200`),
+    check("annotations_book_color", sql`${t.bookColor} ~ '^#[0-9a-f]{6}$'`),
+    check("annotations_kind", sql`${t.kind} in ('quote', 'note')`),
+    check("annotations_text", sql`char_length(${t.text}) between 1 and 4000 and (${t.kind} = 'note' or char_length(${t.text}) <= 1000)`),
+    check("annotations_comment", sql`char_length(${t.comment}) <= 1000`),
+    check("annotations_page", sql`${t.page} is null or ${t.page} between 1 and 100000`),
+  ],
+);
+
+export type AnnotationRow = typeof annotations.$inferSelect;
+export type ReadingProgressRow = typeof readingProgress.$inferSelect;
+
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;
 export type EntryInsert = typeof entries.$inferInsert;

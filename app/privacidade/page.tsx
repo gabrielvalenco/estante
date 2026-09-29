@@ -62,6 +62,10 @@ export default function PrivacyPage() {
                 </li>
                 <li>Uso: livros na estante, notas, curtidas, reviews, datas de leitura, quem você segue, bloqueios, reações e notificações.</li>
                 <li>
+                  Anotações de leitura: marcador de página, citações e notas que você guarda em cada livro. São privadas: só você vê, e elas
+                  não aparecem no seu perfil, nem para seguidores.
+                </li>
+                <li>
                   Técnicos: um cookie de sessão para manter você conectado e registros de acesso da hospedagem (endereço IP, data e página), usados
                   para segurança.
                 </li>
