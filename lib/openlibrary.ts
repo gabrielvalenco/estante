@@ -32,6 +32,14 @@ function docToBook(d: SearchDoc): Book {
 
 /** Busca por título, autor ou ISBN. Resultados com capa vêm primeiro. */
 export async function searchBooks(query: string, limit = 24): Promise<Book[]> {
+  return (await searchWithOriginal(query, limit)).map((r) => r.book).sort((a, b) => Number(Boolean(b.coverId)) - Number(Boolean(a.coverId)));
+}
+
+/**
+ * Busca na ordem de relevância da Open Library, com o título original de cada obra
+ * (os livros da base curada aparecem com o título em português: "Duna" no lugar de "Dune").
+ */
+export async function searchWithOriginal(query: string, limit = 24): Promise<{ book: Book; originalTitle: string }[]> {
   const q = query.trim();
   if (!q) return [];
   const params = new URLSearchParams({
@@ -45,7 +53,7 @@ export async function searchBooks(query: string, limit = 24): Promise<Book[]> {
   });
   if (!res.ok) throw new Error(`Open Library respondeu ${res.status}`);
   const { docs } = (await res.json()) as { docs: SearchDoc[] };
-  return docs.map(docToBook).sort((a, b) => Number(Boolean(b.coverId)) - Number(Boolean(a.coverId)));
+  return docs.map((d) => ({ book: docToBook(d), originalTitle: d.title }));
 }
 
 type Work = {
@@ -100,4 +108,19 @@ export async function getBook(id: string): Promise<Book | null> {
     genres: [],
     synopsis: cleanDescription(work.description),
   };
+}
+
+/** Obra de uma edição pelo ISBN (o Goodreads exporta o ISBN da edição que a pessoa leu). */
+export async function bookByIsbn(isbn: string): Promise<Book | null> {
+  if (!/^(\d{9}[\dX]|\d{13})$/i.test(isbn)) return null;
+  try {
+    const res = await fetch(`${BASE}/isbn/${isbn}.json`, { headers: HEADERS, next: { revalidate: 60 * 60 * 24 * 30 } });
+    if (!res.ok) return null;
+    const edition = (await res.json()) as { works?: { key: string }[]; number_of_pages?: number };
+    const workId = edition.works?.[0]?.key.replace("/works/", "");
+    const book = workId ? await getBook(workId) : null;
+    return book && !book.pages && edition.number_of_pages ? { ...book, pages: edition.number_of_pages } : book;
+  } catch {
+    return null;
+  }
 }

@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { importEntriesAction, saveEntryAction } from "@/app/actions";
+import { getMyAccount, importEntriesAction, saveEntryAction } from "@/app/actions";
 import type { Book } from "@/lib/books";
 import type { ShelfEntry } from "@/lib/db/types";
 
@@ -154,6 +154,13 @@ export async function connectAccount(shelf: ShelfEntry[]) {
 
   set(remote);
   setLoading(false);
+}
+
+/** Recarrega a estante da conta (depois de algo feito no servidor, como uma importação). */
+export async function refreshLibrary() {
+  if (mode.kind !== "remote") return;
+  const account = await getMyAccount();
+  if (account) set(Object.fromEntries(account.shelf.map((e) => [e.book.id, e])));
 }
 
 /** Saiu (ou não há contas): volta a usar o navegador. */

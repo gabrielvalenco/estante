@@ -21,9 +21,10 @@ const BROCHURA = [
   "Marcador de página em todos os livros",
   "20 citações e 3 notas por livro",
   "3 discussões novas por mês (responder é livre)",
+  "Importar a estante do Goodreads",
 ];
-const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite"];
-const CAPA_DURA_SOON = ["Importar destaques do Kindle", "Exportar suas notas", "Retrospectiva do ano"];
+const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle"];
+const CAPA_DURA_SOON = ["Exportar suas notas", "Retrospectiva do ano"];
 const EX_LIBRIS = ["Tudo do Capa Dura", "Clubes de leitura privados", "Citação por foto da página, sem limite", "Temas e selo Ex Libris"];
 
 const ERRORS: Record<BillingError, string> = {

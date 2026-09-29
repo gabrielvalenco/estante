@@ -144,6 +144,10 @@ function StorageNote({ synced, handle, accounts }: { synced: boolean; handle?: s
             </Link>
           </>
         )}
+        <span aria-hidden>·</span>
+        <Link href="/importar" className="font-medium text-anil">
+          Importar do Goodreads
+        </Link>
       </p>
     );
   }

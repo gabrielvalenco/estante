@@ -69,7 +69,12 @@ export function AnnotationsPage() {
   return (
     <div className="max-w-3xl">
       <h1 className="text-title font-semibold text-ink">Anotações</h1>
-      <p className="mt-1 text-ink-3">Seus marcadores, citações e notas. Só você vê.</p>
+      <p className="mt-1 text-ink-3">
+        Seus marcadores, citações e notas. Só você vê.{" "}
+        <Link href="/importar" className="font-medium text-anil hover:underline">
+          Importar destaques do Kindle
+        </Link>
+      </p>
 
       {reading.length > 0 && (
         <section className="mt-8">

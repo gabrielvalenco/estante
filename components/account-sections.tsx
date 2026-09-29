@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, Ban, Download, Eye, EyeOff, Lock, Plus, Trash2, X } from "lucide-react";
+import { BadgeCheck, Ban, Download, Upload, Eye, EyeOff, Lock, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -358,6 +358,9 @@ export function DataSection({ handle }: { handle: string }) {
       }
     >
       <div className="flex flex-wrap gap-3">
+        <Button variant="secondary" render={<Link href="/importar" />} nativeButton={false}>
+          <Upload data-icon="inline-start" /> Importar do Goodreads ou Kindle
+        </Button>
         <Button variant="secondary" render={<a href="/api/conta/exportar" download />} nativeButton={false}>
           <Download data-icon="inline-start" /> Baixar meus dados
         </Button>
