@@ -4,8 +4,6 @@ import { randomBytes } from "node:crypto";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { del, put } from "@vercel/blob";
-import sharp from "sharp";
 
 /**
  * Fotos de perfil. Toda foto vira um quadrado de 256px em WebP (uns 10 a 25 KB), sem metadados
@@ -15,6 +13,11 @@ import sharp from "sharp";
  * Sem BLOB_READ_WRITE_TOKEN: em desenvolvimento salva em public/uploads/avatars; em produção
  * o envio de foto fica desligado (as iniciais continuam aparecendo).
  */
+
+// sharp (binário nativo) e o SDK do Blob só carregam quando uma foto é processada. Importados no topo,
+// uma falha deles derrubaria tudo que importa este arquivo, inclusive o login (auth.ts).
+const loadSharp = async () => (await import("sharp")).default;
+const loadBlob = () => import("@vercel/blob");
 
 export const AVATAR_SIZE = 256;
 /** O navegador já manda a foto recortada e reduzida; isto é só o teto para quem chamar a action direto. */
@@ -36,6 +39,7 @@ export function avatarStorage(): AvatarStorage {
 export async function optimizeAvatar(input: Buffer): Promise<Buffer | null> {
   try {
     // limitInputPixels barra "bombas" de descompressão; só o primeiro quadro de GIF animado.
+    const sharp = await loadSharp();
     const image = sharp(input, { limitInputPixels: 50_000_000 });
     const meta = await image.metadata();
     if (!meta.format || !ACCEPTED.has(meta.format)) return null;
@@ -44,7 +48,8 @@ export async function optimizeAvatar(input: Buffer): Promise<Buffer | null> {
       .resize(AVATAR_SIZE, AVATAR_SIZE, { fit: "cover", position: "attention" })
       .webp({ quality: 82, effort: 4 })
       .toBuffer();
-  } catch {
+  } catch (err) {
+    console.error("[avatars] falha ao processar imagem", err);
     return null;
   }
 }
@@ -54,6 +59,7 @@ export async function storeAvatar(profileId: string, webp: Buffer): Promise<stri
   const storage = avatarStorage();
   const name = `${profileId}-${randomBytes(6).toString("hex")}.webp`;
   if (storage === "blob") {
+    const { put } = await loadBlob();
     const blob = await put(`avatars/${name}`, webp, {
       access: "public",
       contentType: "image/webp",
@@ -77,6 +83,7 @@ export async function deleteAvatar(url: string | null | undefined) {
       const file = path.basename(url);
       if (/^[\w-]+\.webp$/.test(file)) await unlink(path.join(LOCAL_DIR, file));
     } else if (process.env.BLOB_READ_WRITE_TOKEN && new URL(url).hostname.endsWith(".blob.vercel-storage.com")) {
+      const { del } = await loadBlob();
       await del(url);
     }
   } catch {
@@ -121,7 +128,8 @@ export async function importProviderAvatar(profileId: string, image: string): Pr
     if (bytes.byteLength > 5 * 1024 * 1024) return null;
     const webp = await optimizeAvatar(bytes);
     return webp ? await storeAvatar(profileId, webp) : null;
-  } catch {
+  } catch (err) {
+    console.error("[avatars] falha ao importar foto do provedor", err);
     return null;
   }
 }
@@ -144,6 +152,7 @@ export async function avatarPngDataUrl(url: string | null | undefined, size: num
       if (!res.ok) return null;
       bytes = Buffer.from(await res.arrayBuffer());
     }
+    const sharp = await loadSharp();
     const png = await sharp(bytes).resize(size, size, { fit: "cover" }).png().toBuffer();
     return `data:image/png;base64,${png.toString("base64")}`;
   } catch {

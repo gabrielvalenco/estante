@@ -88,7 +88,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
         token.profileId = created.id;
         // Primeira entrada: a foto do Google/GitHub vira a foto do perfil (copiada para o nosso Blob).
-        await adoptProviderAvatar(created.id, user.image);
+        // Nunca impede o login: sem foto, o avatar fica com as iniciais.
+        await adoptProviderAvatar(created.id, user.image).catch((err) => console.error("[auth] foto do provedor", err));
       }
       return token;
     },
