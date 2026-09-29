@@ -20,6 +20,7 @@ escreva reviews curtas e descubra livros pelas listas de outros leitores.
   (baixar os dados em JSON e excluir a conta). Política de privacidade e termos de uso em [/privacidade](app/privacidade/page.tsx).
 - **Perfil:** nome e @ únicos, até 3 redes sociais montadas pelo app (sem link livre) com selo de verificado no
   GitHub e no Bluesky quando o perfil aponta de volta para a Estante.
+- **Compartilhar avaliações** como no Letterboxd: imagem gerada no servidor (`next/og`) para Stories (9:16) e feed (4:5), no fundo da cor do livro, página pública da avaliação com prévia de link, folha de compartilhamento nativa no celular e atalhos para WhatsApp, X, Threads, Bluesky e Facebook. Perfil privado não expõe a review nem na página nem na prévia.
 - **Comprar o livro:** botão com link de afiliado da Amazon (busca pelo título, em Livros), com `rel="sponsored"` e o aviso do Associados. Liga com a variável `AMAZON_ASSOCIATE_TAG`.
 - **Listas** curadas e página de explorar com filtro por gênero e ordenação.
 

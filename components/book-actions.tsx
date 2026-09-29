@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { LikeButton } from "@/components/like-button";
 import { LogDialog } from "@/components/log-dialog";
+import { ShareMyReview } from "@/components/share-review";
 import { StarInput } from "@/components/stars";
 import { Button } from "@/components/ui/button";
 import type { Book } from "@/lib/books";
@@ -102,6 +103,9 @@ export function BookActions({ book }: { book: Book }) {
           </Button>
         }
       />
+      {entry && (
+        <ShareMyReview bookId={book.id} title={book.title} rating={entry.rating} review={entry.review} version={entry.updatedAt} />
+      )}
     </div>
   );
 }

@@ -23,7 +23,11 @@ async function revalidateEverywhere(profileId: string, handle: string) {
   revalidatePath("/");
   revalidatePath("/leitores");
   const books = await db!.select({ id: entries.bookId }).from(entries).where(eq(entries.userId, profileId)).limit(500);
-  books.forEach((b) => revalidatePath(`/livro/${b.id}`));
+  books.forEach((b) => {
+    revalidatePath(`/livro/${b.id}`);
+    // Página pública de cada avaliação (o link compartilhado nas redes).
+    revalidatePath(`/u/${handle}/livro/${b.id}`);
+  });
 }
 
 // ------------------------------------------------------------

@@ -170,3 +170,40 @@ export function searchReaders(query: string, limit = 5): Promise<ProfileCard[]> 
       .limit(limit);
   });
 }
+
+export type SharedReview = {
+  entry: EntryRow;
+  profile: { id: string; handle: string; name: string; tone: string; isPrivate: boolean; founder: boolean };
+};
+
+/**
+ * A avaliação de uma pessoa para um livro (nota e/ou review), para a página e a imagem de compartilhamento.
+ * Quem chama decide o que mostrar se o perfil for privado.
+ */
+export function reviewByHandle(handle: string, bookId: string): Promise<SharedReview | null> {
+  if (!/^[a-z0-9_]{3,20}$/.test(handle) || !/^OL\d+W$/.test(bookId)) return Promise.resolve(null);
+  return safe(null, async () => {
+    const [row] = await db!
+      .select({
+        entry: entries,
+        profile: { id: profiles.id, handle: profiles.handle, name: profiles.name, tone: profiles.tone, isPrivate: profiles.isPrivate, founder: profiles.founder },
+      })
+      .from(entries)
+      .innerJoin(profiles, eq(entries.userId, profiles.id))
+      .where(and(eq(profiles.handle, handle), eq(entries.bookId, bookId)))
+      .limit(1);
+    // Só vale como "avaliação" se tiver nota ou texto.
+    if (!row || (row.entry.rating === null && !row.entry.review)) return null;
+    return row;
+  });
+}
+
+/**
+ * Versão para página pública: se o perfil for privado, a nota e o texto já saem daqui apagados.
+ * O conteúdo privado nunca passa pela página (nem pelos dados de depuração do React em desenvolvimento).
+ */
+export async function publicReviewByHandle(handle: string, bookId: string): Promise<SharedReview | null> {
+  const data = await reviewByHandle(handle, bookId);
+  if (!data || !data.profile.isPrivate) return data;
+  return { ...data, entry: { ...data.entry, review: "", rating: null, liked: false, finishedOn: null } };
+}

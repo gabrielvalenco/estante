@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { getMyReactions, reactToReviewAction } from "@/app/social-actions";
+import { ShareReviewButton } from "@/components/share-review";
 import { useAuth, useAuthFlags } from "@/lib/auth";
 import { formatCount } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -56,11 +57,14 @@ export function ReviewReactions({
   bookId,
   likes,
   dislikes,
+  share,
 }: {
   handle: string;
   bookId: string;
   likes: number;
   dislikes: number;
+  /** Dados para o botão "Compartilhar", que só aparece na própria review. */
+  share?: { title: string; rating: number | null; version: number };
 }) {
   const auth = useAuth();
   const { accounts } = useAuthFlags();
@@ -139,6 +143,9 @@ export function ReviewReactions({
     <div className="mt-2 -ml-2.5 flex items-center gap-0.5">
       {button(1)}
       {button(-1)}
+      {isOwn && share && (
+        <ShareReviewButton handle={handle} bookId={bookId} title={share.title} rating={share.rating} version={share.version} variant="icon" />
+      )}
     </div>
   );
 }

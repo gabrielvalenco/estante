@@ -45,7 +45,13 @@ export function ReviewCard({ review, withBook = false, className }: { review: Re
           {review.spoiler ? <SpoilerText text={review.text} /> : <p>{review.text}</p>}
         </div>
         {review.reactions && (
-          <ReviewReactions handle={user.handle} bookId={book.id} likes={review.reactions.likes} dislikes={review.reactions.dislikes} />
+          <ReviewReactions
+            handle={user.handle}
+            bookId={book.id}
+            likes={review.reactions.likes}
+            dislikes={review.reactions.dislikes}
+            share={{ title: book.title, rating: review.rating, version: Date.parse(review.date) }}
+          />
         )}
         {review.likes !== null && (
           <p className="mt-2 flex items-center gap-1.5 text-xs text-ink-4">

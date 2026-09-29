@@ -15,7 +15,13 @@ import "./globals.css";
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"], display: "swap" });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], display: "swap" });
 
+// Base das URLs absolutas (prévias de link nas redes precisam de endereço completo).
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: { default: `${SITE.name}, ${SITE.tagline.toLowerCase()}`, template: `%s · ${SITE.name}` },
   description: SITE.description,
   openGraph: { type: "website", locale: "pt_BR", siteName: SITE.name },

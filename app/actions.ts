@@ -397,4 +397,6 @@ async function revalidateAfterShelfChange(profileId: string, bookId?: string) {
   revalidatePath("/leitores");
   const p = await db?.query.profiles.findFirst({ where: eq(profiles.id, profileId), columns: { handle: true } });
   if (p) revalidatePath(`/u/${p.handle}`);
+  // Página pública da avaliação (o link compartilhado nas redes).
+  if (p && bookId) revalidatePath(`/u/${p.handle}/livro/${bookId}`);
 }
