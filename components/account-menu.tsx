@@ -1,9 +1,10 @@
 "use client";
 
-import { Library, LogOut, Settings, UserRound, Users } from "lucide-react";
+import { Library, LogOut, Moon, Settings, Sun, UserRound, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
 import {
@@ -22,6 +23,7 @@ export function AccountMenu() {
   const pathname = usePathname();
   const router = useRouter();
   const flags = useAuthFlags();
+  const { resolvedTheme, setTheme } = useTheme();
 
   if (!flags.accounts) return null;
   if (auth.status === "loading") return <span className="size-10 shrink-0" aria-hidden />;
@@ -72,6 +74,10 @@ export function AccountMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={() => router.push("/conta")}>
           <Settings /> Configurações
+        </DropdownMenuItem>
+        {/* No celular o botão de tema sai do header e vem para cá. */}
+        <DropdownMenuItem className="rounded-lg px-2.5 py-2 md:hidden" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
+          {resolvedTheme === "dark" ? <Sun /> : <Moon />} {resolvedTheme === "dark" ? "Tema claro" : "Tema escuro"}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem className="rounded-lg px-2.5 py-2" onClick={leave}>

@@ -224,7 +224,7 @@ function Form({ profile }: { profile: Profile }) {
         </fieldset>
       </div>
 
-      <div className="sticky bottom-0 mt-10 flex items-center justify-end gap-3 border-t border-line bg-canvas/90 py-4 backdrop-blur">
+      <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] mt-10 md:bottom-0 flex items-center justify-end gap-3 border-t border-line bg-canvas/90 py-4 backdrop-blur">
         <Button variant="ghost" render={<Link href={`/u/${profile.handle}`} />} nativeButton={false}>
           Ver meu perfil
         </Button>

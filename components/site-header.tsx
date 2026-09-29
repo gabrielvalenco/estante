@@ -1,6 +1,6 @@
 "use client";
 
-import { Library, Search } from "lucide-react";
+import { Library } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -73,17 +73,11 @@ export function SiteHeader() {
             <HeaderSearch />
           </Suspense>
           <Link
-            href="/busca"
-            aria-label="Buscar livros"
-            className="inline-flex size-10 items-center justify-center rounded-full text-ink-2 transition-colors hover:bg-sunken sm:hidden"
-          >
-            <Search className="size-[18px]" />
-          </Link>
-          <Link
             href="/estante"
             aria-current={pathname === "/estante" ? "page" : undefined}
             className={cn(
-              "inline-flex h-10 items-center gap-2 rounded-full pr-3.5 pl-3 text-sm font-medium transition-colors",
+              // No celular, a estante fica na barra de abas de baixo.
+              "hidden h-10 items-center gap-2 rounded-full pr-3.5 pl-3 text-sm font-medium transition-colors md:inline-flex",
               pathname === "/estante" ? "bg-ink text-on-ink" : "bg-sunken text-ink hover:bg-line",
             )}
           >
@@ -100,7 +94,8 @@ export function SiteHeader() {
               </span>
             )}
           </Link>
-          <ThemeToggle />
+          {/* Logado no celular, o tema fica no menu da conta; visitante não tem menu, então o botão fica. */}
+          <ThemeToggle className={auth.status === "user" ? "hidden md:inline-flex" : undefined} />
           <NotificationsBell />
           <AccountMenu />
         </div>

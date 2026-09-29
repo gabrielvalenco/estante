@@ -3,6 +3,7 @@ import { Geist_Mono, Inter } from "next/font/google";
 
 import { AuthProvider } from "@/components/auth-sync";
 import { SiteFooter } from "@/components/site-footer";
+import { MobileTabBar } from "@/components/mobile-tab-bar";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,20 +34,24 @@ export const viewport: Viewport = {
     { media: "(prefers-color-scheme: dark)", color: "#0b0b0d" },
   ],
   colorScheme: "light dark",
+  // Deixa a barra de abas usar a área segura do iPhone (env(safe-area-inset-bottom)).
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${geistMono.variable}`} suppressHydrationWarning>
-      <body>
+      {/* No celular, espaço no fim da página para a barra de abas não cobrir o rodapé. */}
+      <body className="pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0">
         <ThemeProvider>
           <AuthProvider flags={authFlags}>
             <TooltipProvider>
               <SiteHeader />
               <main className="relative isolate min-h-[calc(100dvh-3.5rem)]">{children}</main>
               <SiteFooter />
+              <MobileTabBar />
             </TooltipProvider>
-            <Toaster position="bottom-center" />
+            <Toaster position="bottom-center" mobileOffset={{ bottom: "calc(4.75rem + env(safe-area-inset-bottom))" }} />
           </AuthProvider>
         </ThemeProvider>
       </body>
