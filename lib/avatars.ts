@@ -39,9 +39,10 @@ export function avatarStorage(): AvatarStorage {
 
 /** Confere pelo conteúdo (não pela extensão) que é uma imagem e devolve o quadrado 256px em WebP. */
 export async function optimizeAvatar(input: Buffer): Promise<Buffer | null> {
+  // Falha ao carregar o sharp é erro do servidor, não da imagem: deixa subir (vira "tente de novo").
+  const sharp = await loadSharp();
   try {
     // limitInputPixels barra "bombas" de descompressão; só o primeiro quadro de GIF animado.
-    const sharp = await loadSharp();
     const image = sharp(input, { limitInputPixels: 50_000_000 });
     const meta = await image.metadata();
     if (!meta.format || !ACCEPTED.has(meta.format)) return null;
