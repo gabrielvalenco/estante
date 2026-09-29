@@ -144,7 +144,7 @@ export function CoverFan({ initial, catalog }: { initial: FanBook[]; catalog: Fa
   return (
     <>
       <div
-        className="relative mx-auto mt-14 flex max-w-5xl items-end justify-center px-4 [perspective:1400px] sm:mt-20"
+        className="relative mx-auto mt-14 flex max-w-5xl items-end justify-center px-4 pb-10 [perspective:1400px] sm:mt-20 sm:pb-20"
         onPointerLeave={leave}
         aria-hidden
       >
@@ -200,7 +200,7 @@ export function CoverFan({ initial, catalog }: { initial: FanBook[]; catalog: Fa
         })}
       </div>
       <p
-        className="mt-6 flex h-5 items-center justify-center gap-1.5 text-[0.8125rem] text-ink-3 transition-opacity duration-500"
+        className="mt-8 flex h-5 items-center justify-center gap-1.5 text-[0.8125rem] text-ink-3 transition-opacity duration-500"
         style={{ opacity: personal ? 1 : 0 }}
         aria-live="polite"
       >

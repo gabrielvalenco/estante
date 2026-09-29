@@ -10,7 +10,7 @@ import { ListCard } from "@/components/list-card";
 import { ReviewCard } from "@/components/review-card";
 import { SectionHeader } from "@/components/shelf";
 import { Stars } from "@/components/stars";
-import { AFFILIATE_DISCLOSURE, buyLink } from "@/lib/affiliate";
+import { buyLink } from "@/lib/affiliate";
 import { bookStats, listsWith, reviewsFor } from "@/lib/data/social";
 import { formatAverage, formatCount } from "@/lib/format";
 import { BOOKS } from "@/lib/books";
@@ -109,7 +109,7 @@ export default async function BookPage({ params }: Props) {
           <aside className="md:col-span-2 lg:col-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1">
             <div className="lg:sticky lg:top-20">
               <BookActions book={book} />
-              {buy && <BuyButton link={buy} disclosure={AFFILIATE_DISCLOSURE} />}
+              {buy && <BuyButton link={buy} />}
             </div>
           </aside>
 
