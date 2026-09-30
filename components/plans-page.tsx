@@ -22,9 +22,10 @@ const BROCHURA = [
   "20 citações e 3 notas por livro",
   "3 discussões novas por mês (responder é livre)",
   "Importar a estante do Goodreads",
+  "Retrospectiva do ano (básica)",
 ];
-const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle", "Exportar citações e notas (Markdown)"];
-const CAPA_DURA_SOON = ["Retrospectiva do ano"];
+const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle", "Exportar citações e notas (Markdown)", "Retrospectiva do ano completa"];
+const CAPA_DURA_SOON: string[] = [];
 const EX_LIBRIS = ["Tudo do Capa Dura", "Clubes de leitura privados", "Citação por foto da página, sem limite", "Temas e selo Ex Libris"];
 
 const ERRORS: Record<BillingError, string> = {
@@ -168,8 +169,12 @@ export function PlansPage() {
           </p>
           <p className="mt-1 text-xs text-ink-4">{interval === "year" ? "Equivale a R$ 4,92 por mês." : "Ou R$ 59 no plano anual."}</p>
           <Features items={CAPA_DURA} />
-          <p className="mt-4 text-xs font-medium tracking-wide text-ink-4 uppercase">Em breve no Capa Dura</p>
-          <Features items={CAPA_DURA_SOON} soft />
+          {CAPA_DURA_SOON.length > 0 && (
+            <>
+              <p className="mt-4 text-xs font-medium tracking-wide text-ink-4 uppercase">Em breve no Capa Dura</p>
+              <Features items={CAPA_DURA_SOON} soft />
+            </>
+          )}
           <div className="mt-auto pt-6">
             {!data ? (
               <Skeleton className="h-10 rounded-full" />

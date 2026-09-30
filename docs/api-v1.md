@@ -31,6 +31,7 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | PATCH | `/me` | sim | `{ name, handle, bio, goal, tone, favorites }` e/ou `{ isPrivate }` → conta atualizada |
 | POST | `/me/avatar` | sim | multipart, campo `file` (recorte quadrado; o servidor gera 256px WebP) → `{ profile }` |
 | DELETE | `/me/avatar` | sim | Remove a foto → `{ profile }` |
+| GET | `/retrospective?year=` | sim | Retrospectiva do ano: `basic` para todos, `full` só no Capa Dura (senão `null`) |
 | GET | `/plans` | não | `{ enabled, prices, plans }`: limites de cada plano e se a assinatura já está aberta |
 | GET | `/home` | não | `{ books, reviews }`: vitrine e reviews recentes |
 | GET | `/books/search?q=` | não | `{ books }` (título, autor ou ISBN; 2 a 80 caracteres) |
