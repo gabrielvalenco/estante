@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     return [
       { source: "/api/v1/:path*", headers },
       { source: "/api/conta/anotacoes", headers },
+      { source: "/api/leitura/foto", headers },
     ];
   },
 };

@@ -24,7 +24,7 @@ const BROCHURA = [
   "Importar a estante do Goodreads",
   "Retrospectiva do ano (básica)",
 ];
-const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle", "Exportar citações e notas (Markdown)", "Retrospectiva do ano completa"];
+const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle", "Exportar citações e notas (Markdown)", "Retrospectiva do ano completa", "Citação por foto da página (10 por mês)"];
 const CAPA_DURA_SOON: string[] = [];
 const EX_LIBRIS = ["Tudo do Capa Dura", "Clubes de leitura privados", "Citação por foto da página, sem limite", "Temas e selo Ex Libris"];
 

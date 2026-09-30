@@ -422,6 +422,22 @@ export const subscriptions = pgTable(
 
 export type SubscriptionRow = typeof subscriptions.$inferSelect;
 
+/**
+ * Leituras de foto de página (citação por foto). Só para contar o uso do mês por plano:
+ * a foto em si não é guardada.
+ */
+export const pageScans = pgTable(
+  "page_scans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("page_scans_user_idx").on(t.userId, t.createdAt.desc())],
+);
+
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;
 export type EntryInsert = typeof entries.$inferInsert;

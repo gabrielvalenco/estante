@@ -13,6 +13,8 @@ type Limits = {
   notesPerBook: number;
   /** Discussões novas por mês (responder é sempre livre). */
   threadsPerMonth: number;
+  /** Citações lidas de foto da página, por mês (usa IA: tem custo). */
+  photoQuotesPerMonth: number;
 };
 
 /** Recursos que dependem do plano. */
@@ -23,18 +25,18 @@ type Plan = { name: string; limits: Limits; features: Record<Feature, boolean> }
 export const PLANS: Record<PlanId, Plan> = {
   brochura: {
     name: "Brochura",
-    limits: { quotes: 20, notesPerBook: 3, threadsPerMonth: 3 },
+    limits: { quotes: 20, notesPerBook: 3, threadsPerMonth: 3, photoQuotesPerMonth: 0 },
     // Importar a estante do Goodreads é a porta de entrada: grátis para todo mundo.
     features: { goodreadsImport: true, kindleImport: false, exportNotes: false, fullRetrospective: false },
   },
   "capa-dura": {
     name: "Capa Dura",
-    limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity },
+    limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity, photoQuotesPerMonth: 10 },
     features: { goodreadsImport: true, kindleImport: true, exportNotes: true, fullRetrospective: true },
   },
   "ex-libris": {
     name: "Ex Libris",
-    limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity },
+    limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity, photoQuotesPerMonth: Infinity },
     features: { goodreadsImport: true, kindleImport: true, exportNotes: true, fullRetrospective: true },
   },
 };

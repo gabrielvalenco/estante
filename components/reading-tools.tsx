@@ -1,8 +1,8 @@
 "use client";
 
-import { BookMarked, Copy, NotebookPen, Pencil, Plus, Quote, Trash2 } from "lucide-react";
+import { BookMarked, Camera, Copy, NotebookPen, Pencil, Plus, Quote, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import {
@@ -391,6 +391,14 @@ export function AnnotationDialog({
             <DialogDescription className="mt-0.5 truncate text-ink-3">{book.title}</DialogDescription>
           </div>
           <div className="grid gap-4 p-5">
+            {kind === "quote" && !annotation && (
+              <PhotoReader
+                onRead={(r) => {
+                  setText(r.text.slice(0, max));
+                  if (r.page) setPage(String(r.page));
+                }}
+              />
+            )}
             <label className="grid gap-1.5">
               <span className="flex justify-between text-xs font-medium text-ink-3">
                 {kind === "quote" ? "Trecho do livro" : "Nota"}
@@ -455,5 +463,118 @@ export function AnnotationDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ------------------------------------------------------------
+// Citação por foto (Capa Dura)
+// ------------------------------------------------------------
+
+type PhotoUsage = { enabled: boolean; planName: string; used: number; limit: number | null };
+
+/** Reduz a foto no navegador antes de enviar (foto de celular tem 10 MB; o texto segue legível em 1600px). */
+async function shrink(file: File): Promise<Blob> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = Object.assign(document.createElement("canvas"), { width: Math.round(bitmap.width * scale), height: Math.round(bitmap.height * scale) });
+    canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/jpeg", 0.85));
+    return blob ?? file;
+  } catch {
+    // Formato que o navegador não abre (ex.: HEIC no Chrome): manda o original e o servidor tenta.
+    return file;
+  }
+}
+
+function PhotoReader({ onRead }: { onRead: (r: { text: string; page: number | null }) => void }) {
+  const [usage, setUsage] = useState<PhotoUsage | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<{ tone: "info" | "error"; text: string; upsell?: boolean } | null>(null);
+  const input = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    void fetch("/api/leitura/foto")
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setUsage, () => setUsage(null));
+  }, []);
+
+  async function read(file: File) {
+    setBusy(true);
+    setMessage(null);
+    try {
+      const form = new FormData();
+      form.append("file", await shrink(file), "pagina.jpg");
+      const res = await fetch("/api/leitura/foto", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (typeof data.used === "number") setUsage((u) => u && { ...u, used: data.used });
+      if (res.ok) {
+        onRead({ text: data.text, page: data.page ?? null });
+        setMessage({ tone: "info", text: "Confira o texto antes de salvar: a leitura por foto pode errar uma palavra ou outra." });
+      } else if (res.status === 402) {
+        setMessage({ tone: "error", upsell: true, text: data.error === "limit" ? `Você usou as ${data.limit} leituras por foto deste mês.` : "Citação por foto é do plano Capa Dura." });
+      } else if (res.status === 422) {
+        setMessage({ tone: "error", text: data.error === "no_text" ? "Não encontramos texto de livro nessa foto." : "Não deu para ler com segurança. Tente com mais luz e a página reta." });
+      } else if (res.status === 413) {
+        setMessage({ tone: "error", text: "Foto grande demais. Tente de novo." });
+      } else {
+        setMessage({ tone: "error", text: "Não foi possível ler a foto agora. Tente de novo em instantes." });
+      }
+    } catch {
+      setMessage({ tone: "error", text: "Sem conexão. Tente de novo." });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!usage) return null;
+  const blocked = usage.limit === 0;
+  const left = usage.limit === null ? null : Math.max(0, usage.limit - usage.used);
+
+  return (
+    <div className="grid gap-2 rounded-xl bg-sunken p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          disabled={!usage.enabled || busy}
+          onClick={() => (blocked ? setMessage({ tone: "error", upsell: true, text: "Citação por foto é do plano Capa Dura." }) : input.current?.click())}
+          className="bg-surface"
+        >
+          <Camera data-icon="inline-start" /> {busy ? "Lendo a página..." : "Ler de uma foto"}
+        </Button>
+        <span className="text-xs text-ink-4">
+          {!usage.enabled ? "Em breve" : blocked ? "Capa Dura" : left === null ? "Sem limite no seu plano" : `${left} de ${usage.limit} leituras este mês`}
+        </span>
+      </div>
+      <input
+        ref={input}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        aria-label="Foto da página"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void read(f);
+        }}
+      />
+      {message && (
+        <p className={cn("text-sm", message.tone === "error" ? "text-destructive" : "text-ink-3")} role={message.tone === "error" ? "alert" : "status"}>
+          {message.text}
+          {message.upsell && (
+            <>
+              {" "}
+              <Link href="/planos" className="font-medium text-anil hover:underline">
+                Conhecer o Capa Dura
+              </Link>
+            </>
+          )}
+        </p>
+      )}
+      {!message && usage.enabled && !blocked && <p className="text-xs text-ink-4">Fotografe a página: o texto e o número da página vêm preenchidos. A foto não fica guardada.</p>}
+    </div>
   );
 }

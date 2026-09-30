@@ -118,6 +118,10 @@ export default function PrivacyPage() {
               <List>
                 <li>Vercel (hospedagem do site, registros de acesso e armazenamento das fotos de perfil).</li>
                 <li>
+                  Anthropic, só quando você usa a citação por foto: a foto da página é enviada para o Claude ler o texto e não fica
+                  guardada na Estante. A Anthropic não usa esses dados para treinar modelos e pode mantê-los por até 30 dias para segurança.
+                </li>
+                <li>
                   Stripe, se você assinar o Capa Dura: processa o pagamento e guarda os dados do cartão e o e-mail da cobrança. Aqui ficam só o
                   identificador de cliente no Stripe, o plano, a situação e as datas da assinatura.
                 </li>
