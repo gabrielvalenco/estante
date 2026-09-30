@@ -16,7 +16,7 @@ type Limits = {
 };
 
 /** Recursos que dependem do plano. */
-export type Feature = "goodreadsImport" | "kindleImport";
+export type Feature = "goodreadsImport" | "kindleImport" | "exportNotes";
 
 type Plan = { name: string; limits: Limits; features: Record<Feature, boolean> };
 
@@ -25,17 +25,17 @@ export const PLANS: Record<PlanId, Plan> = {
     name: "Brochura",
     limits: { quotes: 20, notesPerBook: 3, threadsPerMonth: 3 },
     // Importar a estante do Goodreads é a porta de entrada: grátis para todo mundo.
-    features: { goodreadsImport: true, kindleImport: false },
+    features: { goodreadsImport: true, kindleImport: false, exportNotes: false },
   },
   "capa-dura": {
     name: "Capa Dura",
     limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity },
-    features: { goodreadsImport: true, kindleImport: true },
+    features: { goodreadsImport: true, kindleImport: true, exportNotes: true },
   },
   "ex-libris": {
     name: "Ex Libris",
     limits: { quotes: Infinity, notesPerBook: Infinity, threadsPerMonth: Infinity },
-    features: { goodreadsImport: true, kindleImport: true },
+    features: { goodreadsImport: true, kindleImport: true, exportNotes: true },
   },
 };
 

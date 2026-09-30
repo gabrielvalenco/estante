@@ -10,15 +10,14 @@ const nextConfig: NextConfig = {
   // O app no celular não precisa de CORS, então produção fica sem.
   async headers() {
     if (process.env.NODE_ENV !== "development") return [];
+    const headers = [
+      { key: "Access-Control-Allow-Origin", value: "http://localhost:8081" },
+      { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
+      { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type" },
+    ];
     return [
-      {
-        source: "/api/v1/:path*",
-        headers: [
-          { key: "Access-Control-Allow-Origin", value: "http://localhost:8081" },
-          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
-          { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type" },
-        ],
-      },
+      { source: "/api/v1/:path*", headers },
+      { source: "/api/conta/anotacoes", headers },
     ];
   },
 };

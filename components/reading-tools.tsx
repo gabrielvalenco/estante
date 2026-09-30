@@ -15,6 +15,7 @@ import {
   type AnnotationError,
   type ReadingData,
 } from "@/app/reading-actions";
+import { ExportNotesButton } from "@/components/export-notes-button";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -141,6 +142,12 @@ export function ReadingTools({ book }: { book: Book }) {
           <Link href="/anotacoes" className="font-medium text-ink-3 hover:text-ink hover:underline">
             Ver todas as anotações
           </Link>
+          {data.annotations.length > 0 && (
+            <>
+              {" · "}
+              <ExportNotesButton bookId={book.id} compact />
+            </>
+          )}
         </p>
       </div>
 

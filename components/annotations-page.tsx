@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { deleteAnnotationAction, listAnnotations, listProgress, type Annotation, type Progress, type Usage } from "@/app/reading-actions";
 import { BookCover } from "@/components/book-cover";
+import { ExportNotesButton } from "@/components/export-notes-button";
 import { AnnotationDialog, AnnotationItem } from "@/components/reading-tools";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
@@ -68,7 +69,10 @@ export function AnnotationsPage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="text-title font-semibold text-ink">Anotações</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-title font-semibold text-ink">Anotações</h1>
+        {data.annotations.length > 0 && <ExportNotesButton />}
+      </div>
       <p className="mt-1 text-ink-3">
         Seus marcadores, citações e notas. Só você vê.{" "}
         <Link href="/importar" className="font-medium text-anil hover:underline">

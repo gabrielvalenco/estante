@@ -23,8 +23,8 @@ const BROCHURA = [
   "3 discussões novas por mês (responder é livre)",
   "Importar a estante do Goodreads",
 ];
-const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle"];
-const CAPA_DURA_SOON = ["Exportar suas notas", "Retrospectiva do ano"];
+const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle", "Exportar citações e notas (Markdown)"];
+const CAPA_DURA_SOON = ["Retrospectiva do ano"];
 const EX_LIBRIS = ["Tudo do Capa Dura", "Clubes de leitura privados", "Citação por foto da página, sem limite", "Temas e selo Ex Libris"];
 
 const ERRORS: Record<BillingError, string> = {
