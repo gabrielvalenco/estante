@@ -1,26 +1,33 @@
 "use client";
 
-import { BookOpen, Check, Copy, Crown, Lock, LogOut, Plus, RefreshCw, Search, Trash2, UserMinus, Users } from "lucide-react";
+import { BookOpen, Check, Copy, Crown, Lock, LogOut, Plus, RefreshCw, Search, Trash2, UserMinus, UserPlus, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 
 import {
+  cancelInvitationAction,
   createClubAction,
   deleteClubAction,
   getClub,
+  getClubInvitation,
+  inviteFollowerAction,
   joinClubAction,
   leaveClubAction,
   listMyClubs,
   previewInvite,
   regenerateInviteAction,
   removeMemberAction,
+  respondInvitationAction,
+  searchInvitableAction,
   updateClubAction,
   type ClubBook,
   type ClubError,
+  type ClubInvitation,
   type ClubMemberView,
   type ClubView,
+  type InvitableFollower,
 } from "@/app/club-actions";
 import { BookCover } from "@/components/book-cover";
 import { DiscussionsSection } from "@/components/discussions";
@@ -44,6 +51,9 @@ const ERRORS: Record<ClubError, string> = {
   full: "Esse clube está cheio.",
   blocked: "Você não pode entrar neste clube.",
   owner_cannot_leave: "Quem criou o clube não pode sair. Dá para apagar o clube.",
+  not_follower: "Só dá para convidar quem segue você.",
+  already_member: "Essa pessoa já está no clube.",
+  limit_invites: "Muitos convites sem resposta. Espere algumas pessoas responderem.",
 };
 
 /** Redireciona para o login quem chegou sem conta. */
@@ -307,17 +317,27 @@ export function ClubPage({ clubId }: { clubId: string }) {
   const userId = useRequireLogin(`/clubes/${clubId}`);
   const router = useRouter();
   const [club, setClub] = useState<ClubView | null | undefined>(undefined);
+  const [invitation, setInvitation] = useState<ClubInvitation | null>(null);
   const [editing, setEditing] = useState(false);
+  const [inviting, setInviting] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(() => {
-    void getClub(clubId).then(setClub, () => setClub(null));
+    void getClub(clubId).then(
+      async (c) => {
+        // Sem acesso: pode ser alguém com um convite direto ainda sem resposta.
+        if (!c) setInvitation(await getClubInvitation(clubId).catch(() => null));
+        setClub(c);
+      },
+      () => setClub(null),
+    );
   }, [clubId]);
   useEffect(() => {
     if (userId) load();
   }, [userId, load]);
 
   if (club === undefined) return <ListSkeleton />;
+  if (club === null && invitation) return <InvitationCard invitation={invitation} onAccepted={load} />;
   if (club === null) {
     return (
       <div className="max-w-3xl rounded-2xl border border-dashed border-line-strong px-6 py-12 text-center">
@@ -452,6 +472,34 @@ export function ClubPage({ clubId }: { clubId: string }) {
               >
                 <RefreshCw className="size-3.5" aria-hidden /> Criar link novo
               </button>
+              <Button className="mt-4 w-full" variant="secondary" onClick={() => setInviting(true)}>
+                <UserPlus data-icon="inline-start" /> Convidar seguidores
+              </Button>
+              {club.pendingInvites && club.pendingInvites.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-ink-3">Convites sem resposta</p>
+                  <ul className="mt-1.5 grid gap-1">
+                    {club.pendingInvites.map((p) => (
+                      <li key={p.handle} className="flex items-center gap-2 text-sm">
+                        <UserAvatar user={p} size={24} />
+                        <span className="min-w-0 flex-1 truncate text-ink-2">{p.name}</span>
+                        <button
+                          type="button"
+                          aria-label={`Cancelar convite de ${p.name}`}
+                          title="Cancelar convite"
+                          className="inline-flex size-7 items-center justify-center rounded-full text-ink-4 hover:bg-sunken hover:text-ink"
+                          onClick={async () => {
+                            const r = await cancelInvitationAction(club.id, p.handle);
+                            if (r.ok) load();
+                          }}
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
           {owner && club.memberList.length > 1 && (
@@ -492,6 +540,16 @@ export function ClubPage({ clubId }: { clubId: string }) {
         </section>
       )}
 
+      {inviting && (
+        <InviteFollowersDialog
+          clubId={club.id}
+          onClose={() => {
+            setInviting(false);
+            load();
+          }}
+        />
+      )}
+
       {editing && (
         <ClubDialog
           title="Editar clube"
@@ -526,6 +584,139 @@ export function ClubPage({ clubId }: { clubId: string }) {
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Seguidores de quem criou o clube; a lista filtra conforme digita (nome ou @). */
+function InviteFollowersDialog({ clubId, onClose }: { clubId: string; onClose: () => void }) {
+  const [q, setQ] = useState("");
+  const [people, setPeople] = useState<InvitableFollower[] | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => void searchInvitableAction(clubId, q).then((r) => setPeople(r ?? []), () => setPeople([])), q ? 200 : 0);
+    return () => clearTimeout(t);
+  }, [clubId, q]);
+
+  async function invite(p: InvitableFollower) {
+    setSending(p.handle);
+    const r = await inviteFollowerAction(clubId, p.handle).catch(() => ({ ok: false as const, error: "invalid" as ClubError }));
+    setSending(null);
+    if (!r.ok) return toast.error(ERRORS[r.error]);
+    setPeople((list) => list?.map((x) => (x.handle === p.handle ? { ...x, invited: true } : x)) ?? null);
+    toast(`Convite enviado para ${p.name}`);
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] gap-0 overflow-hidden rounded-3xl p-0 sm:max-w-md">
+        <div className="border-b border-line p-5 pr-12">
+          <DialogTitle className="text-lg font-semibold tracking-tight">Convidar seguidores</DialogTitle>
+          <DialogDescription className="mt-0.5 text-ink-3">Quem você convidar recebe uma notificação e decide se entra.</DialogDescription>
+          <div className="relative mt-4">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-4" aria-hidden />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              autoFocus
+              placeholder="Buscar por nome ou @"
+              aria-label="Buscar seguidores"
+              className={cn(inputClass, "pl-9")}
+            />
+          </div>
+        </div>
+        <div className="max-h-[50dvh] overflow-y-auto p-2" aria-live="polite">
+          {people === null ? (
+            <div className="grid gap-2 p-2">
+              {Array.from({ length: 3 }, (_, i) => (
+                <Skeleton key={i} className="h-11" />
+              ))}
+            </div>
+          ) : people.length === 0 ? (
+            <p className="px-3 py-8 text-center text-sm text-ink-3">
+              {q ? `Nenhum seguidor com "${q}".` : "Ninguém para convidar: só aparecem seguidores que ainda não estão no clube."}
+            </p>
+          ) : (
+            <ul className="grid gap-0.5">
+              {people.map((p) => (
+                <li key={p.handle} className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-sunken/60">
+                  <UserAvatar user={p} size={36} href={false} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-ink">{p.name}</span>
+                    <span className="block truncate text-xs text-ink-3">@{p.handle}</span>
+                  </span>
+                  {p.invited ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-musgo">
+                      <Check className="size-3.5" aria-hidden /> Convidado
+                    </span>
+                  ) : (
+                    <Button size="sm" onClick={() => invite(p)} disabled={sending === p.handle} aria-label={`Convidar ${p.name}`}>
+                      Convidar
+                    </Button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="flex justify-end border-t border-line p-4">
+          <Button variant="secondary" onClick={onClose}>
+            Pronto
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Convite direto recebido: mostra o clube e o que os membros veem; entrar ou recusar. */
+function InvitationCard({ invitation, onAccepted }: { invitation: ClubInvitation; onAccepted: () => void }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function respond(accept: boolean) {
+    setBusy(true);
+    const r = await respondInvitationAction(invitation.id, accept).catch(() => ({ ok: false as const, error: "invalid" as ClubError }));
+    setBusy(false);
+    if (!r.ok) return toast.error(ERRORS[r.error]);
+    if (accept) {
+      toast("Bem-vindo ao clube");
+      onAccepted();
+    } else {
+      toast("Convite recusado");
+      router.push("/clubes");
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-md rounded-3xl border border-line bg-surface p-6 text-center shadow-card sm:p-8">
+      <p className="text-sm font-medium text-anil">{invitation.invitedBy} convidou você</p>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight text-ink">{invitation.name}</h1>
+      {invitation.description && <p className="mt-2 text-ink-2">{invitation.description}</p>}
+      <p className="mt-2 text-sm text-ink-3">
+        {invitation.members} {invitation.members === 1 ? "pessoa" : "pessoas"} no clube
+      </p>
+      {invitation.book && (
+        <div className="mx-auto mt-5 flex max-w-xs items-center gap-3 rounded-2xl bg-sunken p-3 text-left">
+          <BookCover book={invitation.book} size="S" className="w-10 shrink-0" />
+          <span className="min-w-0">
+            <span className="block text-xs text-ink-3">Lendo agora</span>
+            <span className="block truncate font-medium text-ink">{invitation.book.title}</span>
+          </span>
+        </div>
+      )}
+      <div className="mt-6 grid gap-2">
+        <Button onClick={() => respond(true)} disabled={busy}>
+          Entrar no clube
+        </Button>
+        <Button variant="ghost" onClick={() => respond(false)} disabled={busy}>
+          Recusar
+        </Button>
+      </div>
+      <p className="mt-3 text-xs text-ink-4">
+        No clube, os outros membros veem seu nome, sua foto e até que página você leu do livro do clube. Suas outras anotações continuam só suas.
+      </p>
     </div>
   );
 }

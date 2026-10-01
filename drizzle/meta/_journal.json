@@ -78,6 +78,13 @@
       "when": 1790879150640,
       "tag": "0010_support",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790881312691,
+      "tag": "0011_club_invitations",
+      "breakpoints": true
     }
   ]
 }

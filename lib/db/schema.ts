@@ -215,7 +215,7 @@ export const reviewReactions = pgTable(
   ],
 );
 
-export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished", "discussion_reply", "support_reply"] as const;
+export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished", "discussion_reply", "support_reply", "club_invite"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /**
@@ -495,6 +495,27 @@ export const clubMembers = pgTable(
     index("club_members_profile_idx").on(t.profileId),
     check("club_members_role", sql`${t.role} in ('owner', 'member')`),
   ],
+);
+
+/**
+ * Convites diretos para um clube (o dono convida seguidores). Ninguém entra sem aceitar:
+ * o convite some ao aceitar, recusar, ou quando o dono cancela.
+ */
+export const clubInvitations = pgTable(
+  "club_invitations",
+  {
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    invitedBy: uuid("invited_by")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.clubId, t.profileId] }), index("club_invitations_profile_idx").on(t.profileId)],
 );
 
 export type ClubRow = typeof clubs.$inferSelect;

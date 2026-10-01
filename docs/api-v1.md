@@ -58,8 +58,13 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | DELETE | `/posts/:id` | sim | Apaga a própria resposta |
 | GET | `/clubs` | sim | `{ clubs, canCreate, owned, ownedLimit, planName }` |
 | POST | `/clubs` | sim | `{ name, description?, book? }` → 201 `{ id }`; criar é do Ex Libris (402) |
-| GET | `/clubs/:id` | sim | Clube com `memberList` (progresso no livro do clube); 404 para quem não é membro |
+| GET | `/clubs/:id` | sim | Clube com `memberList` e, para quem criou, `pendingInvites` (progresso no livro do clube); 404 para quem não é membro |
 | POST | `/clubs/:id/leave` | sim | Sai do clube |
+| GET | `/clubs/:id/invitable?q=` | sim | `{ people }`: seguidores de quem criou que ainda não estão no clube (só quem criou) |
+| POST | `/clubs/:id/invitations` | sim | `{ handle }`: convida um seguidor (notificação); 403 se não segue, 429 com muitos convites pendentes |
+| DELETE | `/clubs/:id/invitations/:handle` | sim | Cancela um convite sem resposta |
+| GET | `/clubs/:id/invitation` | sim | Convite direto recebido para o clube (prévia) |
+| POST | `/clubs/:id/invitation` | sim | `{ accept }`: entra no clube ou recusa |
 | GET | `/clubs/invite/:code` | sim | Prévia do convite |
 | POST | `/clubs/join` | sim | `{ code }` → `{ id }`; cheio: 409 |
 | GET | `/support/faq` | não | `{ email, topics, faq }`: perguntas frequentes e assuntos do suporte |

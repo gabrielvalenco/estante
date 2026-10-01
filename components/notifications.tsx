@@ -238,6 +238,18 @@ function Message({ item }: { item: NotificationItem }) {
       return <>terminou {book}, que está na sua lista Quero ler.</>;
     case "discussion_reply":
       return <>respondeu sua discussão sobre {book}.</>;
+    case "club_invite": {
+      const clubId = item.bookId?.split(":")[1] ?? "";
+      return (
+        <>
+          convidou você para o clube{" "}
+          <Link href={`/clubes/${clubId}`} className="font-medium text-ink hover:underline">
+            {item.bookTitle}
+          </Link>
+          .
+        </>
+      );
+    }
     case "support_reply": {
       const n = Number(item.bookId?.split(":")[1]);
       return (
