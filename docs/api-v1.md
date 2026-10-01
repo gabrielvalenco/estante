@@ -32,7 +32,7 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | POST | `/me/avatar` | sim | multipart, campo `file` (recorte quadrado; o servidor gera 256px WebP) → `{ profile }` |
 | DELETE | `/me/avatar` | sim | Remove a foto → `{ profile }` |
 | GET | `/retrospective?year=` | sim | Retrospectiva do ano: `basic` para todos, `full` só no Capa Dura (senão `null`) |
-| GET | `/plans` | não | `{ enabled, prices, plans }`: limites de cada plano e se a assinatura já está aberta |
+| GET | `/plans` | não | `{ enabled, currency, plans }`: limites e preços (centavos, mensal e anual) de cada plano e se a assinatura já está aberta. `prices` (só do Capa Dura) fica por compatibilidade |
 | GET | `/home` | não | `{ books, reviews }`: vitrine e reviews recentes |
 | GET | `/books/search?q=` | não | `{ books }` (título, autor ou ISBN; 2 a 80 caracteres) |
 | GET | `/books/:id` | opcional | `{ book, stats, reviews, buy, myEntry }` (`myEntry` só com token) |
