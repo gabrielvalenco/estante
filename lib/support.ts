@@ -44,6 +44,11 @@ export const FAQ: FaqGroup[] = [
     title: "Conta e login",
     items: [
       {
+        q: "Como instalo o app no Android?",
+        a: "Baixe o APK pelo link abaixo, no celular. Como o app ainda não está na Play Store, o Android pede para permitir a instalação desse arquivo e pode mostrar um aviso do Play Protect; é só confirmar. Versões novas aparecem em Configurações, no app.",
+        link: { label: "Baixar o app", href: "/app/baixar" },
+      },
+      {
         q: "Criei a conta com Google ou GitHub. Como entro no app?",
         a: "Na tela de entrar do app, toque em “Continuar com Google, GitHub ou o site”. O site abre, você entra como sempre e confirma. É a mesma conta, com a mesma estante.",
       },

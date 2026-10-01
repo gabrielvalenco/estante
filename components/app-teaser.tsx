@@ -1,11 +1,15 @@
 import {
   Bookmark,
   Camera,
+  Download,
   MessagesSquare,
   Smartphone,
   Users,
 } from "lucide-react";
 import Image from "next/image";
+
+import { Button } from "@/components/ui/button";
+import { APP_DOWNLOAD_URL, latestAppRelease } from "@/lib/app-release";
 
 const FEATURES = [
   {
@@ -38,8 +42,12 @@ const FEATURES = [
   },
 ];
 
-/** Anúncio do app na página inicial: texto, recursos e uma tela real do app num celular. */
-export function AppTeaser() {
+/**
+ * App na página inicial: texto, recursos, uma tela real do app num celular e o download do APK
+ * (versão e tamanho do Release mais novo no GitHub; sem release, "em breve").
+ */
+export async function AppTeaser() {
+  const release = await latestAppRelease();
   return (
     <section
       className="container-page mt-24 sm:mt-32"
@@ -49,7 +57,9 @@ export function AppTeaser() {
         <div className="relative z-10">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-ambar-soft px-3 py-1 text-[0.8125rem] font-semibold text-ambar-ink">
             <Smartphone className="size-3.5" aria-hidden />
-            Em breve para Android
+            {release
+              ? `Beta para Android · versão ${release.version}`
+              : "Em breve para Android"}
           </span>
           <h2
             id="app-teaser-title"
@@ -81,6 +91,39 @@ export function AppTeaser() {
               </li>
             ))}
           </ul>
+
+          {release && (
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <div className="max-w-sm">
+                <Button
+                  size="lg"
+                  nativeButton={false}
+                  render={<a href={APP_DOWNLOAD_URL} />}
+                >
+                  <Download data-icon="inline-start" />
+                  Baixar para Android
+                </Button>
+                <p className="mt-2.5 text-xs leading-relaxed text-ink-4">
+                  APK · {release.sizeMb.toLocaleString("pt-BR")} MB. Como o app
+                  ainda não está na Play Store, o Android pede para permitir a
+                  instalação e pode mostrar um aviso do Play Protect.
+                </p>
+              </div>
+              <div className="hidden items-center gap-3 lg:flex">
+                {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático pequeno */}
+                <img
+                  src="/app/baixar-qr.svg"
+                  alt=""
+                  width={88}
+                  height={88}
+                  className="rounded-xl border border-line bg-white p-1.5"
+                />
+                <p className="max-w-[9rem] text-xs text-ink-3">
+                  Aponte a câmera do celular para baixar.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="relative mx-auto w-full max-w-[17rem] self-end lg:max-w-[18.5rem] lg:self-center">
