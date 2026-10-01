@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { getPlanStatus, openPortalAction, startCheckoutAction, syncCheckoutAction, type BillingError } from "@/app/billing-actions";
+import { getPlanStatus, openPortalAction, startCheckoutAction, syncCheckoutAction, syncPortalAction, type BillingError } from "@/app/billing-actions";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/lib/auth";
@@ -52,6 +52,7 @@ export function PlansPage() {
   const [busy, setBusy] = useState(false);
   const synced = useRef(false);
   const session = params.get("sessao");
+  const portal = params.get("portal") === "1";
   const userId = auth.status === "user" ? auth.profile.id : null;
 
   useEffect(() => {
@@ -60,14 +61,24 @@ export function PlansPage() {
     if (session && userId && !synced.current) {
       synced.current = true;
       void syncCheckoutAction(session).then((r) => {
-        if (r.ok && r.status.plan !== "brochura") toast("Bem-vindo ao Capa Dura", { description: "Citações, notas e discussões sem limite." });
+        if (r.ok && r.status.plan === "ex-libris") toast("Bem-vindo ao Ex Libris", { description: "Crie seu primeiro clube de leitura em Clubes." });
+        else if (r.ok && r.status.plan === "capa-dura") toast("Bem-vindo ao Capa Dura", { description: "Citações, notas e discussões sem limite." });
         router.replace("/planos");
         void getPlanStatus().then(setData);
       });
       return;
     }
+    // Volta do portal: a pessoa pode ter trocado de plano ou cancelado.
+    if (portal && userId && !synced.current) {
+      synced.current = true;
+      void syncPortalAction().then((status) => {
+        router.replace("/planos");
+        void getPlanStatus().then((d) => setData(status ? { ...d, status } : d));
+      });
+      return;
+    }
     void getPlanStatus().then(setData);
-  }, [auth.status, userId, session, router]);
+  }, [auth.status, userId, session, portal, router]);
 
   async function subscribe(plan: Paid) {
     setBusy(true);
@@ -139,7 +150,7 @@ export function PlansPage() {
         <p className="text-sm font-medium text-anil">Planos</p>
         <h1 className="mt-1 text-hero font-semibold tracking-tight text-ink">Leia mais, guarde tudo.</h1>
         <p className="mt-3 text-lg text-ink-2">
-          A Estante é grátis para registrar, avaliar e seguir leitores. O Capa Dura tira os limites das suas anotações e discussões.
+          A Estante é grátis para registrar, avaliar e seguir leitores. O Capa Dura tira os limites; o Ex Libris abre clubes de leitura privados.
         </p>
       </div>
 

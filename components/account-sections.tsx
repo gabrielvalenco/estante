@@ -410,7 +410,7 @@ export function PlanSection() {
   const end = status?.status?.periodEnd ? new Date(status.status.periodEnd).toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" }) : null;
 
   return (
-    <Section id="plano" title="Plano" description="Brochura é grátis para sempre. O Capa Dura tira os limites de citações, notas e discussões.">
+    <Section id="plano" title="Plano" description="Brochura é grátis para sempre. O Capa Dura tira os limites de citações, notas e discussões; o Ex Libris abre clubes de leitura.">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-4">
         <div>
           <p className="font-medium text-ink">{!status ? "..." : plan === "ex-libris" ? "Ex Libris" : paid ? "Capa Dura" : "Brochura (grátis)"}</p>

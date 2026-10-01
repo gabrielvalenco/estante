@@ -69,8 +69,24 @@ export async function openPortalAction(): Promise<{ ok: true; url: string } | { 
   if (!s) return { ok: false, error: "unavailable" };
   const sub = await db.query.subscriptions.findFirst({ where: eq(subscriptions.profileId, me), columns: { stripeCustomerId: true } });
   if (!sub) return { ok: false, error: "not_found" };
-  const portal = await s.billingPortal.sessions.create({ customer: sub.stripeCustomerId, return_url: `${await origin()}/planos` });
+  const portal = await s.billingPortal.sessions.create({ customer: sub.stripeCustomerId, return_url: `${await origin()}/planos?portal=1` });
   return { ok: true, url: portal.url };
+}
+
+/**
+ * Volta do portal: relê a assinatura no Stripe (troca de plano, cancelamento), sem esperar o webhook.
+ * O cliente é sempre o da própria pessoa, lido do banco.
+ */
+export async function syncPortalAction(): Promise<PlanStatus | null> {
+  const me = await currentProfileId();
+  if (!me || !db) return null;
+  const s = stripe();
+  const sub = await db.query.subscriptions.findFirst({ where: eq(subscriptions.profileId, me), columns: { stripeCustomerId: true } });
+  if (s && sub) {
+    const list = await s.subscriptions.list({ customer: sub.stripeCustomerId, status: "all", limit: 1 }).catch(() => null);
+    if (list?.data[0]) await syncSubscription(list.data[0]);
+  }
+  return planStatusOf(me);
 }
 
 /**
