@@ -1,12 +1,13 @@
 "use server";
 
-import { and, asc, count, desc, eq, gte, inArray, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, notInArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/lib/db";
-import { blocks, discussionPosts, discussionReports, discussionThreads, entries, profiles, readingProgress } from "@/lib/db/schema";
+import { blocks, clubs, discussionPosts, discussionReports, discussionThreads, entries, profiles, readingProgress } from "@/lib/db/schema";
 import { notify } from "@/lib/db/social";
 import { planOf } from "@/lib/billing";
+import { isClubMember } from "@/lib/clubs";
 import { limitValue, PLANS } from "@/lib/plans";
 import { currentProfileId } from "@/lib/session";
 
@@ -109,7 +110,7 @@ async function threadUsage(me: string): Promise<ThreadUsage> {
   const [{ n }] = await db!
     .select({ n: count() })
     .from(discussionThreads)
-    .where(and(eq(discussionThreads.authorId, me), gte(discussionThreads.createdAt, monthStart)));
+    .where(and(eq(discussionThreads.authorId, me), gte(discussionThreads.createdAt, monthStart), isNull(discussionThreads.clubId)));
   return { planName: plan.name, threadsThisMonth: n, threadsPerMonthLimit: limitValue(plan.limits.threadsPerMonth) };
 }
 
@@ -139,13 +140,18 @@ function toThread(r: typeof discussionThreads.$inferSelect & { author: Author },
 const BookId = z.string().regex(/^OL\d+W$/);
 const Id = z.uuid();
 
-/** Tópicos de um livro, do mais movimentado para o menos. */
+/**
+ * Tópicos de um livro, do mais movimentado para o menos. Com clubId, só os do clube
+ * (e só para membros); sem, só os públicos.
+ */
 export async function listThreads(
   bookId: string,
   reveal = false,
+  clubId?: string,
 ): Promise<{ threads: ThreadView[]; viewer: Viewer; usage: ThreadUsage | null } | null> {
   if (!db || !BookId.safeParse(bookId).success) return null;
   const me = await currentProfileId();
+  if (clubId && (!Id.safeParse(clubId).success || !(await isClubMember(me, clubId)))) return null;
   const viewer = await viewerOf(me, bookId, reveal);
   const rows = await db
     .select({ thread: discussionThreads, author })
@@ -154,6 +160,7 @@ export async function listThreads(
     .where(
       and(
         eq(discussionThreads.bookId, bookId),
+        clubId ? eq(discussionThreads.clubId, clubId) : isNull(discussionThreads.clubId),
         me ? or(eq(discussionThreads.hidden, false), eq(discussionThreads.authorId, me)) : eq(discussionThreads.hidden, false),
         me ? notInArray(discussionThreads.authorId, blockedWith(me)) : undefined,
       ),
@@ -171,7 +178,7 @@ export async function listThreads(
 export async function getThread(
   threadId: string,
   reveal = false,
-): Promise<{ thread: ThreadView; posts: PostView[]; viewer: Viewer; book: { id: string; title: string } } | null> {
+): Promise<{ thread: ThreadView; posts: PostView[]; viewer: Viewer; book: { id: string; title: string }; clubId: string | null } | null> {
   if (!db || !Id.safeParse(threadId).success) return null;
   const me = await currentProfileId();
   const [row] = await db
@@ -181,6 +188,8 @@ export async function getThread(
     .where(eq(discussionThreads.id, threadId))
     .limit(1);
   if (!row || (row.thread.hidden && row.thread.authorId !== me)) return null;
+  // Discussão de clube: só para membros.
+  if (row.thread.clubId && !(await isClubMember(me, row.thread.clubId))) return null;
 
   const blocked = me ? (await blockedWith(me)).map((b) => b.id) : [];
   if (blocked.includes(row.thread.authorId)) return null;
@@ -209,6 +218,7 @@ export async function getThread(
     }),
     viewer,
     book: { id: row.thread.bookId, title: row.thread.bookTitle },
+    clubId: row.thread.clubId,
   };
 }
 
@@ -222,6 +232,8 @@ const NewThread = z.object({
   title: z.string().trim().min(3).max(120),
   body: z.string().trim().min(1).max(4000),
   page: Page,
+  /** Discussão dentro de um clube (sobre o livro atual do clube). */
+  clubId: z.uuid().optional(),
 });
 const NewPost = z.object({ body: z.string().trim().min(1).max(4000), page: Page });
 const ThreadPatch = z.object({ title: z.string().trim().min(3).max(120).optional(), body: z.string().trim().min(1).max(4000).optional(), page: Page.optional() });
@@ -243,16 +255,22 @@ export async function createThreadAction(
   if (!me || !db) return { ok: false, error: "unauthenticated" };
   const parsed = NewThread.safeParse(input);
   if (!parsed.success) return { ok: false, error: "invalid" };
-  const { book, title, body, page } = parsed.data;
+  const { book, title, body, page, clubId } = parsed.data;
 
   const usage = await threadUsage(me);
-  if (usage.threadsPerMonthLimit !== null && usage.threadsThisMonth >= usage.threadsPerMonthLimit) return { ok: false, error: "limit_threads", usage };
+  if (clubId) {
+    // No clube vale o livro do clube, e quem participa não gasta o limite do mês do próprio plano.
+    const club = await db.query.clubs.findFirst({ where: eq(clubs.id, clubId), columns: { bookId: true } });
+    if (!club || club.bookId !== book.id || !(await isClubMember(me, clubId))) return { ok: false, error: "not_found" };
+  } else if (usage.threadsPerMonthLimit !== null && usage.threadsThisMonth >= usage.threadsPerMonthLimit) {
+    return { ok: false, error: "limit_threads", usage };
+  }
   if (await tooFast(me)) return { ok: false, error: "rate_limited" };
 
-  const [row] = await db.insert(discussionThreads).values({ bookId: book.id, bookTitle: book.title, authorId: me, title, body, page }).returning();
+  const [row] = await db.insert(discussionThreads).values({ bookId: book.id, bookTitle: book.title, authorId: me, title, body, page, clubId: clubId ?? null }).returning();
   const [a] = await db.select(author).from(profiles).where(eq(profiles.id, me));
   const viewer = await viewerOf(me, book.id, false);
-  return { ok: true, thread: toThread({ ...row, author: a }, me, viewer), usage: { ...usage, threadsThisMonth: usage.threadsThisMonth + 1 } };
+  return { ok: true, thread: toThread({ ...row, author: a }, me, viewer), usage: clubId ? usage : { ...usage, threadsThisMonth: usage.threadsThisMonth + 1 } };
 }
 
 export async function replyAction(threadId: string, input: z.input<typeof NewPost>): Promise<{ ok: true; post: PostView } | { ok: false; error: DiscussionError }> {
@@ -263,6 +281,7 @@ export async function replyAction(threadId: string, input: z.input<typeof NewPos
 
   const thread = await db.query.discussionThreads.findFirst({ where: eq(discussionThreads.id, threadId) });
   if (!thread || thread.hidden) return { ok: false, error: "not_found" };
+  if (thread.clubId && !(await isClubMember(me, thread.clubId))) return { ok: false, error: "not_found" };
   const blocked = (await blockedWith(me)).map((b) => b.id);
   if (blocked.includes(thread.authorId)) return { ok: false, error: "blocked" };
   if (await tooFast(me)) return { ok: false, error: "rate_limited" };

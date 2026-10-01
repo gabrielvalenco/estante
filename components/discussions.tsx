@@ -84,7 +84,8 @@ function ViewerNote({ viewer, onReveal }: { viewer: Viewer; onReveal: (reveal: b
 // Lista de discussões na página do livro
 // ------------------------------------------------------------
 
-export function DiscussionsSection({ book }: { book: { id: string; title: string } }) {
+/** Discussões de um livro. Com clubId, as do clube (só membros); sem, as públicas. */
+export function DiscussionsSection({ book, clubId }: { book: { id: string; title: string }; clubId?: string }) {
   const auth = useAuth();
   const { accounts } = useAuthFlags();
   const [data, setData] = useState<{ threads: ThreadView[]; viewer: Viewer; usage: ThreadUsage | null } | null>(null);
@@ -93,8 +94,8 @@ export function DiscussionsSection({ book }: { book: { id: string; title: string
   const userId = auth.status === "user" ? auth.profile.id : null;
 
   const load = useCallback(() => {
-    void listThreads(book.id, reveal).then(setData, () => setData({ threads: [], viewer: { loggedIn: false, page: 0, finished: false, revealed: false, bookmark: 0 }, usage: null }));
-  }, [book.id, reveal]);
+    void listThreads(book.id, reveal, clubId).then(setData, () => setData({ threads: [], viewer: { loggedIn: false, page: 0, finished: false, revealed: false, bookmark: 0 }, usage: null }));
+  }, [book.id, reveal, clubId]);
   useEffect(() => {
     if (auth.status !== "loading") load();
   }, [load, auth.status, userId]);
@@ -156,6 +157,7 @@ export function DiscussionsSection({ book }: { book: { id: string; title: string
       {creating && (
         <NewThreadDialog
           book={book}
+          clubId={clubId}
           defaultPage={data.viewer.bookmark}
           usage={data.usage}
           onClose={() => setCreating(false)}
@@ -203,12 +205,14 @@ function PageField({ page, setPage }: { page: string; setPage: (v: string) => vo
 
 function NewThreadDialog({
   book,
+  clubId,
   defaultPage,
   usage,
   onClose,
   onCreated,
 }: {
   book: { id: string; title: string };
+  clubId?: string;
   defaultPage: number;
   usage: ThreadUsage | null;
   onClose: () => void;
@@ -226,7 +230,7 @@ function NewThreadDialog({
     if (!body.trim()) return setError("Escreva o que você quer discutir.");
     setSaving(true);
     setError(null);
-    const r = await createThreadAction({ book, title, body, page: Number(page) || 0 }).catch(() => ({ ok: false as const, error: "unavailable" as DiscussionError }));
+    const r = await createThreadAction({ book, title, body, page: Number(page) || 0, clubId }).catch(() => ({ ok: false as const, error: "unavailable" as DiscussionError }));
     setSaving(false);
     if (!r.ok) {
       if (r.error === "limit_threads" && "usage" in r && r.usage) {
@@ -272,8 +276,14 @@ function NewThreadDialog({
               </p>
             )}
             <p className="text-xs text-ink-4">
-              Discussões são públicas, mesmo com o perfil privado.
-              {usage?.threadsPerMonthLimit != null && ` ${usage.threadsThisMonth} de ${usage.threadsPerMonthLimit} discussões novas neste mês no plano ${usage.planName}.`}
+              {clubId ? (
+                "Só os membros do clube veem esta discussão."
+              ) : (
+                <>
+                  Discussões são públicas, mesmo com o perfil privado.
+                  {usage?.threadsPerMonthLimit != null && ` ${usage.threadsThisMonth} de ${usage.threadsPerMonthLimit} discussões novas neste mês no plano ${usage.planName}.`}
+                </>
+              )}
             </p>
           </div>
           <div className="flex justify-end gap-2 border-t border-line p-4">
@@ -330,21 +340,23 @@ export function ThreadPage({ threadId, bookId }: { threadId: string; bookId: str
     );
   }
 
-  const { thread, posts, viewer, book } = data;
+  const { thread, posts, viewer, book, clubId } = data;
+  // Discussão de clube volta para o clube; a pública, para o livro.
+  const back = clubId ? { href: `/clubes/${clubId}`, label: "Voltar ao clube" } : { href: `/livro/${book.id}`, label: book.title };
 
   async function removeThread() {
     if (!window.confirm("Apagar esta discussão e todas as respostas?")) return;
     const r = await deleteThreadAction(thread.id);
     if (r.ok) {
       toast("Discussão apagada");
-      router.push(`/livro/${book.id}`);
+      router.push(back.href);
     } else toast.error("Não foi possível apagar");
   }
 
   return (
     <div className="max-w-3xl">
-      <Link href={`/livro/${book.id}`} className="text-sm font-medium text-ink-3 hover:text-ink">
-        ← {book.title}
+      <Link href={back.href} className="text-sm font-medium text-ink-3 hover:text-ink">
+        ← {back.label}
       </Link>
 
       <article className="mt-4 rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6">

@@ -13,8 +13,13 @@ import type { PlanId } from "@/lib/plans";
  * trocar de conta ou de modo (teste/produção) não exige mudar ids no código.
  */
 
-export const PRICE_KEYS = { month: "capa-dura-mensal", year: "capa-dura-anual" } as const;
-export type Interval = keyof typeof PRICE_KEYS;
+export type PaidPlan = "capa-dura" | "ex-libris";
+export type Interval = "month" | "year";
+/** lookup_key de cada preço no Stripe (criados por scripts/stripe-setup.mjs). */
+export const PRICE_KEYS: Record<PaidPlan, Record<Interval, string>> = {
+  "capa-dura": { month: "capa-dura-mensal", year: "capa-dura-anual" },
+  "ex-libris": { month: "ex-libris-mensal", year: "ex-libris-anual" },
+};
 
 /** Status em que a assinatura ainda dá acesso. past_due: cobrança falhou, o Stripe está tentando de novo. */
 const ACTIVE = ["active", "trialing", "past_due"];
@@ -76,10 +81,10 @@ export async function customerFor(profileId: string, name: string): Promise<stri
   return row?.stripeCustomerId ?? customer.id;
 }
 
-export async function priceId(interval: Interval): Promise<string | null> {
+export async function priceId(plan: PaidPlan, interval: Interval): Promise<string | null> {
   const s = stripe();
   if (!s) return null;
-  const prices = await s.prices.list({ lookup_keys: [PRICE_KEYS[interval]], active: true, limit: 1 });
+  const prices = await s.prices.list({ lookup_keys: [PRICE_KEYS[plan][interval]], active: true, limit: 1 });
   return prices.data[0]?.id ?? null;
 }
 
@@ -93,7 +98,8 @@ export async function syncSubscription(sub: Stripe.Subscription): Promise<Subscr
   const item = sub.items.data[0];
   const values = {
     stripeSubscriptionId: sub.id,
-    plan: "capa-dura" as const,
+    // O plano vem do preço comprado (troca de plano no portal muda o preço da assinatura).
+    plan: (item?.price.lookup_key?.startsWith("ex-libris") ? "ex-libris" : "capa-dura") as PaidPlan,
     status: sub.status,
     interval: item?.price.recurring?.interval === "year" ? ("year" as const) : ("month" as const),
     currentPeriodEnd: item ? new Date(item.current_period_end * 1000) : null,

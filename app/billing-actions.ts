@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
-import { billingEnabled, customerFor, planStatusOf, priceId, stripe, syncSubscription, type Interval, type PlanStatus } from "@/lib/billing";
+import { billingEnabled, customerFor, planStatusOf, priceId, stripe, syncSubscription, type Interval, type PaidPlan, type PlanStatus } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { profiles, subscriptions } from "@/lib/db/schema";
 import { currentProfileId } from "@/lib/session";
@@ -29,18 +29,21 @@ export async function getPlanStatus(): Promise<{ status: PlanStatus | null; enab
   return { status: me ? await planStatusOf(me) : null, enabled: billingEnabled() };
 }
 
-/** Abre o checkout do Stripe para o Capa Dura (mensal ou anual). Devolve a URL para redirecionar. */
-export async function startCheckoutAction(interval: Interval): Promise<{ ok: true; url: string } | { ok: false; error: BillingError }> {
+/**
+ * Abre o checkout do Stripe para um plano pago (mensal ou anual). Devolve a URL para redirecionar.
+ * Quem já assina troca de plano pelo portal (o Stripe calcula a diferença proporcional).
+ */
+export async function startCheckoutAction(plan: PaidPlan, interval: Interval): Promise<{ ok: true; url: string } | { ok: false; error: BillingError }> {
   const me = await currentProfileId();
   if (!me || !db) return { ok: false, error: "unauthenticated" };
   const s = stripe();
-  if (!s || (interval !== "month" && interval !== "year")) return { ok: false, error: "unavailable" };
+  if (!s || (interval !== "month" && interval !== "year") || (plan !== "capa-dura" && plan !== "ex-libris")) return { ok: false, error: "unavailable" };
 
   const current = await planStatusOf(me);
   if (current.plan !== "brochura") return { ok: false, error: "already_subscribed" };
 
   const profile = await db.query.profiles.findFirst({ where: eq(profiles.id, me), columns: { name: true } });
-  const [customer, price] = await Promise.all([customerFor(me, profile?.name ?? "Leitor"), priceId(interval)]);
+  const [customer, price] = await Promise.all([customerFor(me, profile?.name ?? "Leitor"), priceId(plan, interval)]);
   if (!customer || !price) return { ok: false, error: "unavailable" };
 
   const base = await origin();

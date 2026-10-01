@@ -66,6 +66,10 @@ export default function PrivacyPage() {
                   não aparecem no seu perfil, nem para seguidores.
                 </li>
                 <li>
+                  Clubes de leitura: se você entrar num clube, os outros membros veem seu nome, sua foto, até que página você leu do livro
+                  do clube e o que você escreve nas discussões dele. Suas outras anotações continuam só suas. Sair do clube encerra isso.
+                </li>
+                <li>
                   Técnicos: um cookie de sessão para manter você conectado e registros de acesso da hospedagem (endereço IP, data e página), usados
                   para segurança.
                 </li>

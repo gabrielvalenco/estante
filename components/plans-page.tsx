@@ -13,7 +13,11 @@ import { useAuth } from "@/lib/auth";
 import type { PlanStatus } from "@/lib/billing";
 import { cn } from "@/lib/utils";
 
-const PRICE = { month: { value: "R$ 6,90", per: "/mês" }, year: { value: "R$ 59", per: "/ano" } };
+const PRICES = {
+  "capa-dura": { month: { value: "R$ 6,90", per: "/mês" }, year: { value: "R$ 59", per: "/ano" }, note: { year: "Equivale a R$ 4,92 por mês.", month: "Ou R$ 59 no plano anual." } },
+  "ex-libris": { month: { value: "R$ 14,90", per: "/mês" }, year: { value: "R$ 119", per: "/ano" }, note: { year: "Equivale a R$ 9,92 por mês.", month: "Ou R$ 119 no plano anual." } },
+} as const;
+type Paid = keyof typeof PRICES;
 
 const BROCHURA = [
   "Reviews, notas e estante sem limite",
@@ -26,7 +30,7 @@ const BROCHURA = [
 ];
 const CAPA_DURA = ["Tudo do Brochura", "Citações ilimitadas", "Notas ilimitadas em cada livro", "Discussões novas sem limite", "Importar destaques do Kindle", "Exportar citações e notas (Markdown)", "Retrospectiva do ano completa", "Citação por foto da página (10 por mês)"];
 const CAPA_DURA_SOON: string[] = [];
-const EX_LIBRIS = ["Tudo do Capa Dura", "Clubes de leitura privados", "Citação por foto da página, sem limite", "Temas e selo Ex Libris"];
+const EX_LIBRIS = ["Tudo do Capa Dura", "Clubes de leitura privados: até 5, com 30 pessoas cada", "Quem você convida participa de graça", "Citação por foto da página, sem limite"];
 
 const ERRORS: Record<BillingError, string> = {
   unauthenticated: "Entre na sua conta para assinar.",
@@ -65,9 +69,9 @@ export function PlansPage() {
     void getPlanStatus().then(setData);
   }, [auth.status, userId, session, router]);
 
-  async function subscribe() {
+  async function subscribe(plan: Paid) {
     setBusy(true);
-    const r = await startCheckoutAction(interval).catch(() => ({ ok: false as const, error: "unavailable" as BillingError }));
+    const r = await startCheckoutAction(plan, interval).catch(() => ({ ok: false as const, error: "unavailable" as BillingError }));
     if (r.ok) {
       window.location.href = r.url;
       return;
@@ -90,6 +94,45 @@ export function PlansPage() {
   const plan = data?.status?.plan ?? "brochura";
   const subscribed = plan !== "brochura";
 
+  /** Botão de cada plano pago: assinar, ou gerenciar / mudar de plano para quem já assina. */
+  function PlanCta({ target }: { target: Paid }) {
+    if (!data) return <Skeleton className="h-10 rounded-full" />;
+    if (plan === target) {
+      return (
+        <Button className="w-full" onClick={manage} disabled={busy}>
+          Gerenciar assinatura
+        </Button>
+      );
+    }
+    if (subscribed) {
+      return (
+        <Button variant="secondary" className="w-full" onClick={manage} disabled={busy}>
+          {target === "ex-libris" ? "Mudar para o Ex Libris" : "Mudar para o Capa Dura"}
+        </Button>
+      );
+    }
+    if (auth.status !== "user") {
+      return (
+        <Button className="w-full" variant={target === "capa-dura" ? "default" : "secondary"} nativeButton={false} render={<Link href="/entrar?next=/planos" />}>
+          Entrar para assinar
+        </Button>
+      );
+    }
+    if (!data.enabled) {
+      return (
+        <Button className="w-full" variant={target === "capa-dura" ? "default" : "secondary"} disabled>
+          Em breve
+        </Button>
+      );
+    }
+    const price = PRICES[target][interval];
+    return (
+      <Button className="w-full" variant={target === "capa-dura" ? "default" : "secondary"} onClick={() => subscribe(target)} disabled={busy}>
+        {busy ? "Abrindo pagamento..." : `Assinar por ${price.value}${price.per}`}
+      </Button>
+    );
+  }
+
   return (
     <div>
       <div className="max-w-2xl">
@@ -103,7 +146,10 @@ export function PlansPage() {
       {subscribed && data?.status && (
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-musgo/30 bg-musgo-soft p-5">
           <div>
-            <p className="font-semibold text-musgo">Você assina o Capa Dura{data.status.interval === "year" ? " anual" : " mensal"}</p>
+            <p className="font-semibold text-musgo">
+              Você assina o {plan === "ex-libris" ? "Ex Libris" : "Capa Dura"}
+              {data.status.interval === "year" ? " anual" : " mensal"}
+            </p>
             <p className="mt-0.5 text-sm text-ink-2">
               {data.status.canceling
                 ? `Cancelado: o plano vale até ${formatDate(data.status.periodEnd!)} e não renova.`
@@ -164,10 +210,10 @@ export function PlansPage() {
           <h2 className="text-lg font-semibold text-ink">Capa Dura</h2>
           <p className="mt-1 text-sm text-ink-3">Para quem anota tudo e puxa conversa.</p>
           <p className="mt-5 flex items-baseline gap-1">
-            <span className="text-4xl font-semibold tracking-tight text-ink">{PRICE[interval].value}</span>
-            <span className="text-ink-3">{PRICE[interval].per}</span>
+            <span className="text-4xl font-semibold tracking-tight text-ink">{PRICES["capa-dura"][interval].value}</span>
+            <span className="text-ink-3">{PRICES["capa-dura"][interval].per}</span>
           </p>
-          <p className="mt-1 text-xs text-ink-4">{interval === "year" ? "Equivale a R$ 4,92 por mês." : "Ou R$ 59 no plano anual."}</p>
+          <p className="mt-1 text-xs text-ink-4">{PRICES["capa-dura"].note[interval]}</p>
           <Features items={CAPA_DURA} />
           {CAPA_DURA_SOON.length > 0 && (
             <>
@@ -176,36 +222,25 @@ export function PlansPage() {
             </>
           )}
           <div className="mt-auto pt-6">
-            {!data ? (
-              <Skeleton className="h-10 rounded-full" />
-            ) : subscribed ? (
-              <Button className="w-full" onClick={manage} disabled={busy}>
-                Gerenciar assinatura
-              </Button>
-            ) : auth.status !== "user" ? (
-              <Button className="w-full" nativeButton={false} render={<Link href="/entrar?next=/planos" />}>
-                Entrar para assinar
-              </Button>
-            ) : !data.enabled ? (
-              <Button className="w-full" disabled>
-                Em breve
-              </Button>
-            ) : (
-              <Button className="w-full" onClick={subscribe} disabled={busy}>
-                {busy ? "Abrindo pagamento..." : `Assinar por ${PRICE[interval].value}${PRICE[interval].per}`}
-              </Button>
-            )}
+            <PlanCta target="capa-dura" />
           </div>
         </section>
 
         {/* Ex Libris */}
-        <section className="flex flex-col rounded-3xl border border-dashed border-line-strong bg-surface/60 p-6">
+        <section className="flex flex-col rounded-3xl border border-line bg-surface p-6 shadow-card">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-ink">
             Ex Libris <Sparkles className="size-4 text-ambar" aria-hidden />
           </h2>
           <p className="mt-1 text-sm text-ink-3">Para clubes e leitores de carteirinha.</p>
-          <p className="mt-5 text-4xl font-semibold tracking-tight text-ink-3">Em breve</p>
-          <Features items={EX_LIBRIS} soft />
+          <p className="mt-5 flex items-baseline gap-1">
+            <span className="text-4xl font-semibold tracking-tight text-ink">{PRICES["ex-libris"][interval].value}</span>
+            <span className="text-ink-3">{PRICES["ex-libris"][interval].per}</span>
+          </p>
+          <p className="mt-1 text-xs text-ink-4">{PRICES["ex-libris"].note[interval]}</p>
+          <Features items={EX_LIBRIS} />
+          <div className="mt-auto pt-6">
+            <PlanCta target="ex-libris" />
+          </div>
         </section>
       </div>
 

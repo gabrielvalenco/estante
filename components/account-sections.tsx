@@ -413,7 +413,7 @@ export function PlanSection() {
     <Section id="plano" title="Plano" description="Brochura é grátis para sempre. O Capa Dura tira os limites de citações, notas e discussões.">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-surface p-4">
         <div>
-          <p className="font-medium text-ink">{!status ? "..." : paid ? "Capa Dura" : "Brochura (grátis)"}</p>
+          <p className="font-medium text-ink">{!status ? "..." : plan === "ex-libris" ? "Ex Libris" : paid ? "Capa Dura" : "Brochura (grátis)"}</p>
           <p className="text-sm text-ink-3">
             {!status
               ? "Carregando"

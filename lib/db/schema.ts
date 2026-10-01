@@ -319,6 +319,8 @@ export const discussionThreads = pgTable(
     bookId: text("book_id").notNull(),
     /** Cópia do título do livro, para as notificações. */
     bookTitle: text("book_title").notNull(),
+    /** Discussão de um clube: só os membros veem. null = discussão pública do livro. */
+    clubId: uuid("club_id").references(() => clubs.id, { onDelete: "cascade" }),
     authorId: uuid("author_id")
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
@@ -334,6 +336,7 @@ export const discussionThreads = pgTable(
   },
   (t) => [
     index("discussion_threads_book_idx").on(t.bookId, t.lastActivityAt.desc()),
+    index("discussion_threads_club_idx").on(t.clubId, t.lastActivityAt.desc()),
     index("discussion_threads_author_idx").on(t.authorId, t.createdAt.desc()),
     check("discussion_threads_book_id", sql`${t.bookId} ~ '^OL[0-9]+W$'`),
     check("discussion_threads_book_title", sql`char_length(${t.bookTitle}) between 1 and 300`),
@@ -437,6 +440,60 @@ export const pageScans = pgTable(
   },
   (t) => [index("page_scans_user_idx").on(t.userId, t.createdAt.desc())],
 );
+
+/**
+ * Clubes de leitura (Ex Libris para criar; entrar é grátis, pelo convite). Cada clube lê um livro
+ * por vez: os membros veem o progresso uns dos outros nesse livro e discutem sem spoiler.
+ */
+export const clubs = pgTable(
+  "clubs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description").notNull().default(""),
+    ownerId: uuid("owner_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    /** Livro atual do clube (cópia, como nas outras tabelas). */
+    bookId: text("book_id"),
+    bookTitle: text("book_title"),
+    bookAuthor: text("book_author"),
+    bookCoverId: integer("book_cover_id"),
+    bookColor: text("book_color"),
+    /** Código do link de convite. Trocar o código invalida os links antigos. */
+    inviteCode: text("invite_code").notNull().unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("clubs_owner_idx").on(t.ownerId),
+    check("clubs_name", sql`char_length(${t.name}) between 3 and 60`),
+    check("clubs_description", sql`char_length(${t.description}) <= 500`),
+    check("clubs_book_id", sql`${t.bookId} is null or ${t.bookId} ~ '^OL[0-9]+W$'`),
+    check("clubs_invite_code", sql`${t.inviteCode} ~ '^[A-Za-z0-9]{10,32}$'`),
+  ],
+);
+
+export const clubMembers = pgTable(
+  "club_members",
+  {
+    clubId: uuid("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["owner", "member"] }).notNull().default("member"),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.clubId, t.profileId] }),
+    index("club_members_profile_idx").on(t.profileId),
+    check("club_members_role", sql`${t.role} in ('owner', 'member')`),
+  ],
+);
+
+export type ClubRow = typeof clubs.$inferSelect;
 
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;

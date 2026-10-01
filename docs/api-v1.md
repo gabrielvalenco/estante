@@ -50,12 +50,18 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | POST | `/annotations` | sim | `{ book, kind, text, comment?, page? }` → 201; passou do limite do plano: 402 com `usage` |
 | PATCH | `/annotations/:id` | sim | `{ text?, comment?, page? }` |
 | DELETE | `/annotations/:id` | sim | Exclui a anotação |
-| GET | `/books/:id/discussions?spoilers=1` | opcional | `{ threads, viewer, usage }`; o que passa da página de quem pede vem com `spoiler: true` e sem texto |
-| POST | `/books/:id/discussions` | sim | `{ bookTitle, title, body, page }` → 201; limite do plano: 402; muitas mensagens seguidas: 429 |
+| GET | `/books/:id/discussions?spoilers=1&club=` | opcional | `{ threads, viewer, usage }`; o que passa da página de quem pede vem com `spoiler: true` e sem texto |
+| POST | `/books/:id/discussions` | sim | `{ bookTitle, title, body, page, clubId? }` → 201; limite do plano: 402; muitas mensagens seguidas: 429 |
 | GET | `/discussions/:id?spoilers=1` | opcional | `{ thread, posts, viewer, book }` |
 | DELETE | `/discussions/:id` | sim | Apaga a própria discussão |
 | POST | `/discussions/:id/posts` | sim | `{ body, page }` → 201 |
 | DELETE | `/posts/:id` | sim | Apaga a própria resposta |
+| GET | `/clubs` | sim | `{ clubs, canCreate, owned, ownedLimit, planName }` |
+| POST | `/clubs` | sim | `{ name, description?, book? }` → 201 `{ id }`; criar é do Ex Libris (402) |
+| GET | `/clubs/:id` | sim | Clube com `memberList` (progresso no livro do clube); 404 para quem não é membro |
+| POST | `/clubs/:id/leave` | sim | Sai do clube |
+| GET | `/clubs/invite/:code` | sim | Prévia do convite |
+| POST | `/clubs/join` | sim | `{ code }` → `{ id }`; cheio: 409 |
 | POST | `/reports` | sim | `{ kind: "thread" | "post", id, reason? }`; 3 denúncias escondem o item |
 
 Valores de `status`: `quero-ler`, `lendo`, `lido` ou `null`. `rating`: 0.5 a 5, de meia em meia, ou `null`.
