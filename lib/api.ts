@@ -38,6 +38,8 @@ const STATUS: Record<string, number> = {
   blocked: 403,
   too_big: 413,
   unavailable: 503,
+  rate_limited: 429,
+  forbidden: 403,
 };
 
 export const failWith = (error: string) => fail(error, STATUS[error] ?? 400);

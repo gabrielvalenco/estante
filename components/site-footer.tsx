@@ -16,6 +16,9 @@ export function SiteFooter() {
           <Link href="/planos" className="text-ink-2 underline-offset-4 hover:underline">
             Planos
           </Link>
+          <Link href="/ajuda" className="text-ink-2 underline-offset-4 hover:underline">
+            Ajuda
+          </Link>
           <Link href="/privacidade" className="text-ink-2 underline-offset-4 hover:underline">
             Privacidade
           </Link>

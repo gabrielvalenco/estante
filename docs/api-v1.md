@@ -62,6 +62,12 @@ Erros vêm como `{ "error": "<código>" }` com o status HTTP correspondente
 | POST | `/clubs/:id/leave` | sim | Sai do clube |
 | GET | `/clubs/invite/:code` | sim | Prévia do convite |
 | POST | `/clubs/join` | sim | `{ code }` → `{ id }`; cheio: 409 |
+| GET | `/support/faq` | não | `{ email, topics, faq }`: perguntas frequentes e assuntos do suporte |
+| GET | `/support/tickets` | sim | `{ tickets }`: pedidos de suporte da pessoa |
+| POST | `/support/tickets` | opcional | `{ topic, subject, body, email?, name?, appVersion? }` → 201 `{ number, token }`. Sem token, `email` é obrigatório; 429 se abrir muitos seguidos |
+| GET | `/support/tickets/:number` | sim | Pedido com as mensagens (só o dono) |
+| POST | `/support/tickets/:number/messages` | sim | `{ body }`: responde e reabre o pedido |
+| POST | `/support/tickets/:number/resolve` | sim | Marca como resolvido |
 | POST | `/reports` | sim | `{ kind: "thread" | "post", id, reason? }`; 3 denúncias escondem o item |
 
 Valores de `status`: `quero-ler`, `lendo`, `lido` ou `null`. `rating`: 0.5 a 5, de meia em meia, ou `null`.

@@ -19,6 +19,10 @@ import {
 } from "drizzle-orm/pg-core";
 
 import type { SocialLink } from "@/lib/socials";
+import { SUPPORT_STATUSES, SUPPORT_TOPICS, type SupportContext } from "@/lib/support";
+
+export { SUPPORT_STATUSES, SUPPORT_TOPICS };
+export type { SupportContext, SupportStatus, SupportTopic } from "@/lib/support";
 
 /**
  * Schema da Estante. Fonte de verdade para as migrações em /drizzle.
@@ -211,7 +215,7 @@ export const reviewReactions = pgTable(
   ],
 );
 
-export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished", "discussion_reply"] as const;
+export const NOTIFICATION_TYPES = ["follow", "follow_request", "follow_accepted", "review_like", "friend_finished", "discussion_reply", "support_reply"] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 /**
@@ -494,6 +498,66 @@ export const clubMembers = pgTable(
 );
 
 export type ClubRow = typeof clubs.$inferSelect;
+
+/**
+ * Suporte: pedidos de ajuda (com ou sem conta) e a conversa de cada um.
+ * Quem não tem conta acompanha pelo link privado (`access_hash` guarda só o hash do token).
+ * O contexto (plano, plataforma, versão do app) é preenchido pelo servidor, nunca pelo formulário.
+ */
+
+export const supportTickets = pgTable(
+  "support_tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Número curto para mostrar ("#0042"). */
+    number: integer("number").generatedAlwaysAsIdentity().notNull().unique(),
+    profileId: uuid("profile_id").references(() => profiles.id, { onDelete: "cascade" }),
+    /** E-mail para resposta: obrigatório sem conta, opcional com conta. */
+    email: text("email"),
+    name: text("name"),
+    topic: text("topic", { enum: SUPPORT_TOPICS }).notNull(),
+    subject: text("subject").notNull(),
+    status: text("status", { enum: SUPPORT_STATUSES }).notNull().default("aberto"),
+    accessHash: text("access_hash").notNull().unique(),
+    /** Hash do IP (com segredo) só para limitar envios de quem não tem conta. */
+    ipHash: text("ip_hash"),
+    context: jsonb("context").$type<SupportContext>().notNull().default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("support_tickets_profile_idx").on(t.profileId, t.updatedAt.desc()),
+    index("support_tickets_status_idx").on(t.status, t.updatedAt.desc()),
+    index("support_tickets_ip_idx").on(t.ipHash, t.createdAt),
+    check("support_tickets_owner", sql`${t.profileId} is not null or ${t.email} is not null`),
+    check("support_tickets_email", sql`${t.email} is null or (char_length(${t.email}) <= 254 and ${t.email} ~ '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')`),
+    check("support_tickets_name", sql`${t.name} is null or char_length(${t.name}) <= 80`),
+    check("support_tickets_subject", sql`char_length(${t.subject}) between 3 and 120`),
+    check("support_tickets_topic", sql.raw(`topic in (${SUPPORT_TOPICS.map((n) => `'${n}'`).join(", ")})`)),
+    check("support_tickets_status", sql.raw(`status in (${SUPPORT_STATUSES.map((n) => `'${n}'`).join(", ")})`)),
+  ],
+);
+
+export const supportMessages = pgTable(
+  "support_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ticketId: uuid("ticket_id")
+      .notNull()
+      .references(() => supportTickets.id, { onDelete: "cascade" }),
+    /** "pessoa" é quem pediu ajuda; "suporte" é a resposta da Estante. */
+    author: text("author", { enum: ["pessoa", "suporte"] }).notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("support_messages_ticket_idx").on(t.ticketId, t.createdAt),
+    check("support_messages_author", sql`${t.author} in ('pessoa', 'suporte')`),
+    check("support_messages_body", sql`char_length(${t.body}) between 1 and 5000`),
+  ],
+);
+
+export type SupportTicketRow = typeof supportTickets.$inferSelect;
 
 export type ProfileRow = typeof profiles.$inferSelect;
 export type EntryRow = typeof entries.$inferSelect;

@@ -17,11 +17,13 @@ import { FollowButton } from "@/components/follow-button";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Mark } from "@/components/brand";
 import { UserAvatar } from "@/components/user-avatar";
 import { useAuth } from "@/lib/auth";
 import { toISODate } from "@/lib/dates";
 import { formatRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { ticketLabel } from "@/lib/support";
 
 const POLL = 60_000;
 
@@ -175,12 +177,22 @@ function NotificationList({
     <ul className="divide-y divide-line">
       {items.map((item) => (
         <li key={item.id} className={cn("flex gap-3 px-4 py-3.5", !item.read && "bg-anil-soft/40")}>
-          <UserAvatar user={item.actor} size={38} />
+          {item.type === "support_reply" ? (
+            <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-anil-soft">
+              <Mark size={20} />
+            </span>
+          ) : (
+            <UserAvatar user={item.actor} size={38} />
+          )}
           <div className="min-w-0 flex-1">
             <p className={cn("text-[0.875rem] leading-snug text-ink-2", compact && "text-[0.8125rem]")}>
-              <Link href={`/u/${item.actor.handle}`} className="font-semibold text-ink hover:underline">
-                {item.actor.name}
-              </Link>{" "}
+              {item.type === "support_reply" ? (
+                <span className="font-semibold text-ink">{item.actor.name}</span>
+              ) : (
+                <Link href={`/u/${item.actor.handle}`} className="font-semibold text-ink hover:underline">
+                  {item.actor.name}
+                </Link>
+              )}{" "}
               <Message item={item} />
             </p>
             <p className="mt-0.5 text-xs text-ink-4">{formatRelative(toISODate(new Date(item.createdAt)))}</p>
@@ -226,6 +238,18 @@ function Message({ item }: { item: NotificationItem }) {
       return <>terminou {book}, que está na sua lista Quero ler.</>;
     case "discussion_reply":
       return <>respondeu sua discussão sobre {book}.</>;
+    case "support_reply": {
+      const n = Number(item.bookId?.split(":")[1]);
+      return (
+        <>
+          respondeu seu pedido{" "}
+          <Link href={`/ajuda/pedidos/${n}`} className="font-medium text-ink hover:underline">
+            {ticketLabel(n)} · {item.bookTitle}
+          </Link>
+          .
+        </>
+      );
+    }
   }
 }
 

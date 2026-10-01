@@ -70,6 +70,11 @@ export default function PrivacyPage() {
                   do clube e o que você escreve nas discussões dele. Suas outras anotações continuam só suas. Sair do clube encerra isso.
                 </li>
                 <li>
+                  Suporte: se você pedir ajuda, guardamos o que escreveu, o e-mail que informou e, se tiver conta, seu plano e se o pedido veio
+                  do site ou do app. Sem conta, guardamos também um código do seu endereço IP (não o IP em si), só para limitar envios
+                  repetidos. Usamos isso apenas para responder; com a conta, os pedidos são apagados junto.
+                </li>
+                <li>
                   Técnicos: um cookie de sessão para manter você conectado e registros de acesso da hospedagem (endereço IP, data e página), usados
                   para segurança.
                 </li>

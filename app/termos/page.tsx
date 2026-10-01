@@ -109,7 +109,7 @@ export default function TermsPage() {
           title: "Contato",
           body: (
             <p>
-              Dúvidas, denúncias ou pedidos: fale com {SITE.controller} <ContactLine />. Estes termos seguem a lei brasileira.
+              Dúvidas, denúncias ou pedidos: use a <Link href="/ajuda" className="font-medium text-anil hover:text-anil-hover">página de Ajuda</Link> ou fale com {SITE.controller} <ContactLine />. Estes termos seguem a lei brasileira.
             </p>
           ),
         },

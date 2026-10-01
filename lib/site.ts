@@ -1,3 +1,5 @@
+import { SUPPORT_EMAIL } from "@/lib/support";
+
 /** Nome e textos da marca num lugar só. Trocar o nome do app é trocar aqui. */
 export const SITE = {
   name: "Estante",
@@ -12,7 +14,7 @@ export const SITE = {
    * Ficam em variáveis de ambiente para não gravar dados pessoais no código.
    */
   controller: process.env.NEXT_PUBLIC_CONTROLLER_NAME || "o responsável pelo projeto Estante",
-  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || null,
+  contactEmail: process.env.NEXT_PUBLIC_CONTACT_EMAIL || SUPPORT_EMAIL,
   /** Data da versão atual da política e dos termos. */
-  legalUpdatedAt: "2026-09-29",
+  legalUpdatedAt: "2026-10-01",
 } as const;

@@ -21,6 +21,7 @@ import { notify, relationship, unnotify } from "@/lib/db/social";
 import type { ProfileCard } from "@/lib/db/types";
 import { buildContent, type ProfileContent } from "@/lib/profiles";
 import { currentProfileId } from "@/lib/session";
+import { SUPPORT_ACTOR } from "@/lib/support";
 
 /**
  * Ações sociais: conteúdo de perfil privado, reações, notificações, pedidos, bloqueios e sugestões.
@@ -176,7 +177,8 @@ export async function getNotifications(limit = 30): Promise<{ items: Notificatio
     items: rows.map(({ n, actor, pending }) => ({
       id: n.id,
       type: n.type,
-      actor,
+      // Resposta do suporte: mostra "Suporte da Estante", nunca o perfil de quem respondeu.
+      actor: n.type === "support_reply" ? SUPPORT_ACTOR : actor,
       bookId: n.bookId,
       bookTitle: n.bookTitle,
       createdAt: n.createdAt.getTime(),

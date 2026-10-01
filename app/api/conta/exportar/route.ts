@@ -1,8 +1,8 @@
-import { eq, or } from "drizzle-orm";
+import { asc, eq, inArray, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { annotations, blocks, clubMembers, clubs, entries, followRequests, follows, notifications, passwordLogins, profiles, pageScans, readingProgress, reviewReactions, subscriptions } from "@/lib/db/schema";
+import { annotations, blocks, clubMembers, clubs, entries, followRequests, follows, notifications, passwordLogins, profiles, pageScans, readingProgress, reviewReactions, subscriptions, supportMessages, supportTickets } from "@/lib/db/schema";
 import { currentProfileId } from "@/lib/session";
 
 /**
@@ -31,6 +31,11 @@ export async function GET() {
     db.select({ club: clubs.name, role: clubMembers.role, joinedAt: clubMembers.joinedAt }).from(clubMembers).innerJoin(clubs, eq(clubMembers.clubId, clubs.id)).where(eq(clubMembers.profileId, me)),
     db.select({ plan: subscriptions.plan, status: subscriptions.status, interval: subscriptions.interval, currentPeriodEnd: subscriptions.currentPeriodEnd, cancelAt: subscriptions.cancelAt }).from(subscriptions).where(eq(subscriptions.profileId, me)),
   ]);
+
+  const tickets = await db.select().from(supportTickets).where(eq(supportTickets.profileId, me));
+  const ticketMessages = tickets.length
+    ? await db.select().from(supportMessages).where(inArray(supportMessages.ticketId, tickets.map((t) => t.id))).orderBy(asc(supportMessages.createdAt))
+    : [];
 
   const data = {
     exportedAt: new Date().toISOString(),
@@ -61,6 +66,15 @@ export async function GET() {
     // Só a data de cada leitura por foto: a foto não é guardada.
     pagePhotoReadings: scans.map((s) => s.at),
     clubs: clubRows,
+    supportRequests: tickets.map((t) => ({
+      number: t.number,
+      topic: t.topic,
+      subject: t.subject,
+      status: t.status,
+      email: t.email,
+      createdAt: t.createdAt,
+      messages: ticketMessages.filter((m) => m.ticketId === t.id).map((m) => ({ from: m.author, body: m.body, at: m.createdAt })),
+    })),
   };
 
   return new NextResponse(JSON.stringify(data, null, 2), {
