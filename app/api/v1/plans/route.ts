@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { billingEnabled } from "@/lib/billing";
+import { billingEnabled, billingTestMode } from "@/lib/billing";
 import { ocrEnabled } from "@/lib/ocr";
 import { limitValue, PLANS } from "@/lib/plans";
 
@@ -25,7 +25,7 @@ export function GET() {
     },
   }));
   return NextResponse.json(
-    { enabled: billingEnabled(), photoQuotes: ocrEnabled(), currency: "BRL", prices: { month: 690, year: 5900, currency: "BRL" }, plans },
+    { enabled: billingEnabled(), testMode: billingTestMode(), photoQuotes: ocrEnabled(), currency: "BRL", prices: { month: 690, year: 5900, currency: "BRL" }, plans },
     { headers: { "Cache-Control": "public, s-maxage=300" } },
   );
 }

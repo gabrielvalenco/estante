@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
-import { billingEnabled, customerFor, planStatusOf, priceId, stripe, syncSubscription, type Interval, type PaidPlan, type PlanStatus } from "@/lib/billing";
+import { billingEnabled, billingTestMode, customerFor, planStatusOf, priceId, stripe, syncSubscription, type Interval, type PaidPlan, type PlanStatus } from "@/lib/billing";
 import { db } from "@/lib/db";
 import { profiles, subscriptions } from "@/lib/db/schema";
 import { currentProfileId } from "@/lib/session";
@@ -24,9 +24,9 @@ async function origin() {
   return `${proto}://${host}`;
 }
 
-export async function getPlanStatus(): Promise<{ status: PlanStatus | null; enabled: boolean }> {
+export async function getPlanStatus(): Promise<{ status: PlanStatus | null; enabled: boolean; testMode: boolean }> {
   const me = await currentProfileId();
-  return { status: me ? await planStatusOf(me) : null, enabled: billingEnabled() };
+  return { status: me ? await planStatusOf(me) : null, enabled: billingEnabled(), testMode: billingTestMode() };
 }
 
 /**

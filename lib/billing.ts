@@ -33,6 +33,8 @@ export function stripe(): Stripe | null {
 }
 
 export const billingEnabled = () => Boolean(process.env.STRIPE_SECRET_KEY);
+/** Chave de teste do Stripe: nada é cobrado de verdade (o cartão 4242 funciona). */
+export const billingTestMode = () => /^(sk|rk)_test_/.test(process.env.STRIPE_SECRET_KEY ?? "");
 
 /** Plano de um perfil: Capa Dura enquanto a assinatura estiver ativa e dentro do período pago. */
 export async function planOf(profileId: string): Promise<PlanId> {
