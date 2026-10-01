@@ -27,8 +27,8 @@ function fromSeed(b: RawBook): Book {
     pages: b.pages,
     coverId: b.coverId,
     color: c?.color ?? b.color,
-    genres: c?.genres ?? [],
-    synopsis: c?.synopsis ?? b.description,
+    genres: c?.genres ?? b.genres,
+    synopsis: c?.synopsis ?? b.synopsis ?? b.description,
   };
 }
 

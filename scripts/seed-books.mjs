@@ -1,10 +1,14 @@
 // Gera lib/data/books.json a partir da Open Library.
 // Uso: node scripts/seed-books.mjs
 // Para cada livro: metadados, capa e a cor viva da capa (usada para tingir a página do livro).
-import { writeFile } from "node:fs/promises";
+// Livros que já estão no arquivo ficam como estão (os ids não mudam); só os novos são buscados.
+import { readFile, writeFile } from "node:fs/promises";
 import sharp from "sharp";
 
+import { EXTRA } from "./seed-extra.mjs";
+
 // `isbn` fixa uma edição com capa melhor quando a capa padrão da obra é fraca.
+// `work` (em seed-extra) fixa a obra quando a busca por título acha uma edição errada.
 const SEED = [
   { title: "Dom Casmurro", author: "Machado de Assis", pt: "Dom Casmurro" },
   { title: "Memórias Póstumas de Brás Cubas", author: "Machado de Assis", pt: "Memórias Póstumas de Brás Cubas" },
@@ -90,18 +94,20 @@ function cleanDescription(d) {
     .trim();
 }
 
-const out = [];
-for (const item of SEED) {
+const FILE = new URL("../lib/data/books.json", import.meta.url);
+const out = JSON.parse(await readFile(FILE, "utf8").catch(() => "[]"));
+const have = new Set(out.map((b) => b.title));
+for (const item of [...SEED, ...EXTRA]) {
+  if (have.has(item.pt)) continue;
   const q = new URLSearchParams({
-    title: item.title,
-    author: item.author,
+    ...(item.work ? { q: `key:/works/${item.work}` } : { title: item.title, author: item.author }),
     limit: "5",
     fields: "key,title,author_name,first_publish_year,cover_i,number_of_pages_median,subject",
   });
   const { docs } = await json(`https://openlibrary.org/search.json?${q}`);
   const doc = docs.find((d) => d.cover_i);
-  if (!doc) {
-    console.warn("sem resultado:", item.title);
+  if (!doc || out.some((b) => b.id === doc.key.replace("/works/", ""))) {
+    console.warn("sem resultado (ou repetido):", item.title);
     continue;
   }
   const id = doc.key.replace("/works/", "");
@@ -125,9 +131,15 @@ for (const item of SEED) {
     color,
     subjects: (doc.subject ?? []).slice(0, 4),
     description: cleanDescription(work.description),
+    genres: item.genres ?? [],
+    synopsis: item.synopsis ?? null,
   });
-  console.log("ok", id, item.pt, color);
+  console.log("ok", id, item.pt, "|", doc.title, "/", doc.author_name?.[0], color);
 }
 
-await writeFile(new URL("../lib/data/books.json", import.meta.url), JSON.stringify(out, null, 2) + "\n");
+for (const b of out) {
+  b.genres ??= [];
+  b.synopsis ??= null;
+}
+await writeFile(FILE, JSON.stringify(out, null, 2) + "\n");
 console.log(`\n${out.length} livros salvos.`);

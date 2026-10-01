@@ -1,21 +1,20 @@
-import { ArrowRight, BookOpen, Bookmark, Check } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-import { BookCover } from "@/components/book-cover";
+import { AppTeaser } from "@/components/app-teaser";
 import { CoverFan, type FanBook } from "@/components/cover-fan";
 import { ListCard } from "@/components/list-card";
 import { ReviewCard } from "@/components/review-card";
 import { SectionHeader, Shelf } from "@/components/shelf";
 import { Stars } from "@/components/stars";
 import { Button } from "@/components/ui/button";
-import { BOOKS, books } from "@/lib/books";
+import { BOOKS, getSeedBook, type Book } from "@/lib/books";
 import { bookStats, LISTS, REVIEWS } from "@/lib/data/social";
 import { byNewest, fromDemo, type ReviewView } from "@/lib/reviews";
-import { countReaders, recentReviews } from "@/lib/db/queries";
+import { countReaders, popularBooks, recentReviews, type PopularBook } from "@/lib/db/queries";
 import { formatAverage } from "@/lib/format";
 import { seededRandom } from "@/lib/recommend";
 import { SITE } from "@/lib/site";
-import { cn } from "@/lib/utils";
 
 // Catálogo que o leque usa para recomendar e girar: só o necessário para a capa (sem sinopse).
 const FAN_CATALOG: FanBook[] = BOOKS.filter((b) => b.coverId).map(({ id, title, author, coverId, color, year, pages, genres }) => ({
@@ -29,52 +28,46 @@ const FAN_CATALOG: FanBook[] = BOOKS.filter((b) => b.coverId).map(({ id, title, 
   genres,
 }));
 
-/** Leque inicial, igual para todos até a próxima revalidação: muda a cada 10 minutos. */
-function initialFan(): FanBook[] {
-  const random = seededRandom(Math.floor(Date.now() / 600_000));
-  const pool = [...FAN_CATALOG];
-  // Fisher-Yates com a semente do intervalo.
+/** Embaralha com uma semente fixa (Fisher-Yates), para todos verem a mesma ordem no mesmo período. */
+function shuffled<T>(items: T[], seed: number): T[] {
+  const random = seededRandom(seed);
+  const pool = [...items];
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return pool.slice(0, 7);
+  return pool;
 }
-const POPULAR = books("OL18203673W", "OL21745884W", "OL24141556W", "OL1003040W", "OL8479867W", "OL1168083W");
 
-const STATES = [
-  {
-    icon: Bookmark,
-    title: "Quero ler",
-    text: "A pilha de livros que você ainda vai ler, sem perder nenhuma indicação.",
-    card: "bg-anil-soft",
-    ink: "text-anil",
-    books: books("OL893414W", "OL8479867W", "OL32525579W"),
-  },
-  {
-    icon: BookOpen,
-    title: "Lendo",
-    text: "O que está na sua mesa de cabeceira agora, visível para quem te segue.",
-    card: "bg-ameixa-soft",
-    ink: "text-ameixa",
-    books: books("OL1756937W", "OL274505W", "OL20965973W"),
-  },
-  {
-    icon: Check,
-    title: "Lido",
-    text: "Nota de meia em meia estrela, review curta e a data em que terminou.",
-    card: "bg-musgo-soft",
-    ink: "text-musgo",
-    books: books("OL1003040W", "OL2900596W", "OL3140822W"),
-  },
-];
+/** Leque inicial, igual para todos até a próxima revalidação: muda a cada 10 minutos. */
+function initialFan(): FanBook[] {
+  return shuffled(FAN_CATALOG, Math.floor(Date.now() / 600_000)).slice(0, 7);
+}
+
+const asBook = (p: PopularBook): Book => getSeedBook(p.id) ?? { ...p, genres: [], synopsis: null };
+
+/**
+ * Populares da semana: os livros que mais gente registrou nos últimos 7 dias (com pelo menos
+ * 2 leitores), completados com livros do catálogo que mudam a cada semana.
+ */
+function weekPopular(real: PopularBook[], count = 6): Book[] {
+  const picked = real.filter((p) => p.readers >= 2).map(asBook);
+  const seen = new Set(picked.map((b) => b.id));
+  const week = Math.floor(Date.now() / (7 * 86_400_000));
+  for (const b of shuffled(FAN_CATALOG, week)) {
+    if (picked.length >= count) break;
+    const book = seen.has(b.id) ? undefined : getSeedBook(b.id);
+    if (book) picked.push(book);
+  }
+  return picked;
+}
 
 // Feed com reviews reais: a página fica em cache e é atualizada quando alguém publica.
 export const revalidate = 300;
 
 export default async function Home() {
   const demo = REVIEWS.map(fromDemo).filter((r): r is ReviewView => r !== null);
-  const [recent, readers] = await Promise.all([recentReviews(6), countReaders()]);
+  const [recent, readers, popular] = await Promise.all([recentReviews(6), countReaders(), popularBooks(7, 12)]);
   const reviews = [...recent, ...demo].sort(byNewest).slice(0, 6);
 
   return (
@@ -110,37 +103,14 @@ export default async function Home() {
         <CoverFan initial={initialFan()} catalog={FAN_CATALOG} />
       </section>
 
-      {/* Os três estados, nas cores do logo */}
-      <section className="container-page mt-24 sm:mt-32">
-        <div className="mx-auto mb-10 max-w-2xl text-center">
-          <h2 className="text-title font-semibold text-ink">Três cores, uma estante.</h2>
-          <p className="mt-3 text-[1.0625rem] text-ink-3">
-            Cada camada do logo é um momento da leitura. Você vê de relance onde cada livro está.
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          {STATES.map((s) => (
-            <div key={s.title} className={cn("relative flex flex-col overflow-hidden rounded-3xl p-6 pb-0", s.card)}>
-              <s.icon className={cn("size-6", s.ink)} strokeWidth={2} aria-hidden />
-              <h3 className={cn("mt-4 text-xl font-semibold tracking-tight", s.ink)}>{s.title}</h3>
-              <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-2">{s.text}</p>
-              <div className="mt-6 flex items-end justify-center gap-3 px-2">
-                {s.books.map((b, i) => (
-                  <div key={b.id} className={cn("w-1/3 translate-y-4", i === 1 && "translate-y-2")}>
-                    <BookCover book={b} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* App, em breve */}
+      <AppTeaser />
 
       {/* Populares */}
       <section className="container-page mt-24">
         <SectionHeader eyebrow="Mais registrados" title="Populares esta semana" href="/livros" />
         <Shelf
-          books={POPULAR}
+          books={weekPopular(popular)}
           meta={(b) => {
             const s = bookStats(b.id);
             return (

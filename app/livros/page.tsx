@@ -17,10 +17,11 @@ const ORDERS = {
 } as const;
 type Order = keyof typeof ORDERS;
 
-// Gêneros por número de livros, os mais comuns primeiro.
+// Gêneros por número de livros, os mais comuns primeiro (só os que têm pelo menos 2 livros).
 const GENRES = Object.entries(
   BOOKS.flatMap((b) => b.genres).reduce<Record<string, number>>((acc, g) => ({ ...acc, [g]: (acc[g] ?? 0) + 1 }), {}),
 )
+  .filter(([, n]) => n >= 2)
   .sort((a, b) => b[1] - a[1])
   .map(([g]) => g);
 

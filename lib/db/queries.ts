@@ -69,6 +69,31 @@ export function recentReviews(limit = 6): Promise<ReviewView[]> {
   });
 }
 
+export type PopularBook = { id: string; title: string; author: string; coverId: number | null; color: string; year: number | null; pages: number | null; readers: number };
+
+/** Livros mais registrados nos últimos dias (perfis privados contam, mas só o número aparece). */
+export function popularBooks(days = 7, limit = 12): Promise<PopularBook[]> {
+  return safe([], async () => {
+    const rows = await db!
+      .select({
+        id: entries.bookId,
+        title: sql<string>`max(${entries.bookTitle})`,
+        author: sql<string>`max(${entries.bookAuthor})`,
+        coverId: sql<number | null>`max(${entries.bookCoverId})`,
+        color: sql<string>`max(${entries.bookColor})`,
+        year: sql<number | null>`max(${entries.bookYear})`,
+        pages: sql<number | null>`max(${entries.bookPages})`,
+        readers: sql<number>`count(*)::int`,
+      })
+      .from(entries)
+      .where(sql`${entries.updatedAt} > now() - make_interval(days => ${days})`)
+      .groupBy(entries.bookId)
+      .orderBy(desc(sql`count(*)`))
+      .limit(limit);
+    return rows;
+  });
+}
+
 export function bookReviews(bookId: string): Promise<ReviewView[]> {
   return safe([], async () => {
     const rows = await publicReviews()
