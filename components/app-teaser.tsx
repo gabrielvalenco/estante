@@ -12,34 +12,10 @@ import { Button } from "@/components/ui/button";
 import { APP_DOWNLOAD_URL, latestAppRelease } from "@/lib/app-release";
 
 const FEATURES = [
-  {
-    icon: Bookmark,
-    title: "Marcador de página",
-    text: "Anote onde parou com um toque, no ônibus ou na cama.",
-    ink: "text-anil",
-    bg: "bg-anil-soft",
-  },
-  {
-    icon: Camera,
-    title: "Citação por foto",
-    text: "Fotografe a página e guarde o trecho sem digitar.",
-    ink: "text-ameixa",
-    bg: "bg-ameixa-soft",
-  },
-  {
-    icon: MessagesSquare,
-    title: "Discussões sem spoiler",
-    text: "Cada um vê só o que já leu.",
-    ink: "text-musgo",
-    bg: "bg-musgo-soft",
-  },
-  {
-    icon: Users,
-    title: "Clubes de leitura",
-    text: "O progresso do grupo e a conversa no mesmo lugar.",
-    ink: "text-ambar-ink",
-    bg: "bg-ambar-soft",
-  },
+  { icon: Bookmark, title: "Marcador de página", ink: "text-anil" },
+  { icon: Camera, title: "Citação por foto", ink: "text-ameixa" },
+  { icon: MessagesSquare, title: "Discussões sem spoiler", ink: "text-musgo" },
+  { icon: Users, title: "Clubes de leitura", ink: "text-ambar-ink" },
 ];
 
 /**
@@ -53,76 +29,77 @@ export async function AppTeaser() {
       className="container-page mt-24 sm:mt-32"
       aria-labelledby="app-teaser-title"
     >
-      <div className="relative grid items-center gap-12 overflow-hidden rounded-[2rem] border border-line bg-surface px-6 pt-12 sm:px-12 lg:grid-cols-[1.1fr_1fr] lg:gap-8 lg:py-16">
-        <div className="relative z-10">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-ambar-soft px-3 py-1 text-[0.8125rem] font-semibold text-ambar-ink">
-            <Smartphone className="size-3.5" aria-hidden />
+      <div className="relative grid grid-cols-1 items-center gap-12 overflow-hidden rounded-[2rem] border border-line bg-surface px-6 pt-12 sm:px-12 lg:grid-cols-[1.1fr_1fr] lg:gap-8 lg:py-16">
+        <div className="relative z-10 max-w-lg min-w-0">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-anil">
+            <Smartphone className="size-4" aria-hidden />
             {release
-              ? `Beta para Android · versão ${release.version}`
-              : "Em breve para Android"}
-          </span>
+              ? "App para Android · beta"
+              : "App para Android · em breve"}
+          </p>
           <h2
             id="app-teaser-title"
-            className="mt-4 text-title font-semibold text-ink"
+            className="mt-3 text-title font-semibold text-ink"
           >
             A Estante no seu bolso.
           </h2>
-          <p className="mt-3 max-w-md text-[1.0625rem] leading-relaxed text-ink-3">
-            O app leva sua estante para onde o livro vai. Mesma conta do site: o
-            que você marca num aparece no outro.
+          <p className="mt-3 text-[1.0625rem] leading-relaxed text-ink-3">
+            Sua estante vai para onde o livro vai. Mesma conta do site: o que
+            você marca num aparece no outro.
           </p>
 
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2">
+          <ul className="scroller -mx-6 mt-6 flex gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0" aria-label="No app">
             {FEATURES.map((f) => (
-              <li key={f.title} className="flex gap-3">
-                <span
-                  className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${f.bg}`}
-                >
-                  <f.icon className={`size-5 ${f.ink}`} aria-hidden />
-                </span>
-                <span>
-                  <span className="block text-[0.9375rem] font-semibold text-ink">
-                    {f.title}
-                  </span>
-                  <span className="block text-sm leading-snug text-ink-3">
-                    {f.text}
-                  </span>
-                </span>
+              <li
+                key={f.title}
+                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-line bg-canvas px-3.5 text-sm font-medium whitespace-nowrap text-ink-2"
+              >
+                <f.icon className={`size-4 ${f.ink}`} aria-hidden />
+                {f.title}
               </li>
             ))}
           </ul>
 
           {release && (
-            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-              <div className="max-w-sm">
-                <Button
-                  size="lg"
-                  nativeButton={false}
-                  render={<a href={APP_DOWNLOAD_URL} />}
-                >
-                  <Download data-icon="inline-start" />
-                  Baixar para Android
-                </Button>
-                <p className="mt-2.5 text-xs leading-relaxed text-ink-4">
-                  APK · {release.sizeMb.toLocaleString("pt-BR")} MB. Como o app
-                  ainda não está na Play Store, o Android pede para permitir a
-                  instalação e pode mostrar um aviso do Play Protect.
-                </p>
+            <>
+              <div className="mt-8 flex items-center gap-5 rounded-2xl border border-line bg-canvas p-4 sm:p-5">
+                <div className="min-w-0 flex-1">
+                  <Button
+                    size="lg"
+                    nativeButton={false}
+                    render={<a href={APP_DOWNLOAD_URL} />}
+                    className="w-full sm:w-auto"
+                  >
+                    <Download data-icon="inline-start" />
+                    Baixar para Android
+                  </Button>
+                  <p className="tnum mt-2.5 text-sm text-ink-3">
+                    Versão {release.version} ·{" "}
+                    {release.sizeMb.toLocaleString("pt-BR", {
+                      maximumFractionDigits: 0,
+                    })}{" "}
+                    MB
+                  </p>
+                </div>
+                <div className="hidden shrink-0 items-center gap-3 border-l border-line pl-5 lg:flex">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático pequeno */}
+                  <img
+                    src="/app/baixar-qr.svg"
+                    alt=""
+                    width={72}
+                    height={72}
+                    className="rounded-lg bg-white p-1"
+                  />
+                  <p className="w-20 text-xs leading-snug text-ink-3">
+                    Ou aponte a câmera do celular
+                  </p>
+                </div>
               </div>
-              <div className="hidden items-center gap-3 lg:flex">
-                {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático pequeno */}
-                <img
-                  src="/app/baixar-qr.svg"
-                  alt=""
-                  width={88}
-                  height={88}
-                  className="rounded-xl border border-line bg-white p-1.5"
-                />
-                <p className="max-w-[9rem] text-xs text-ink-3">
-                  Aponte a câmera do celular para baixar.
-                </p>
-              </div>
-            </div>
+              <p className="mt-3 text-xs text-ink-4">
+                Fora da Play Store por enquanto: o Android pede sua autorização
+                para instalar.
+              </p>
+            </>
           )}
         </div>
 
