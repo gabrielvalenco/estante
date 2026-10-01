@@ -12,15 +12,23 @@ export const runtime = "nodejs";
  */
 export async function POST(req: NextRequest) {
   const s = stripe();
-  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  // trim: um espaço ou quebra de linha colados junto com o segredo na Vercel invalidam toda assinatura.
+  const secret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   const signature = req.headers.get("stripe-signature");
   if (!s || !secret || !signature) return NextResponse.json({ error: "not_configured" }, { status: 400 });
 
   let event: Stripe.Event;
   try {
     event = await s.webhooks.constructEventAsync(await req.text(), signature, secret);
-  } catch {
-    return NextResponse.json({ error: "invalid_signature" }, { status: 400 });
+  } catch (err) {
+    // O motivo aparece na entrega do Stripe e no log da Vercel; nunca inclui o segredo.
+    const reason = !secret.startsWith("whsec_")
+      ? "O segredo configurado não começa com whsec_: confira STRIPE_WEBHOOK_SECRET."
+      : err instanceof Error && /timestamp/i.test(err.message)
+        ? "Assinatura fora do prazo: confira o relógio do servidor."
+        : "A assinatura não confere: STRIPE_WEBHOOK_SECRET não é o segredo deste destino.";
+    console.error("[stripe webhook]", reason);
+    return NextResponse.json({ error: "invalid_signature", reason }, { status: 400 });
   }
 
   switch (event.type) {
